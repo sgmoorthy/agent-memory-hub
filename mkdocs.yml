@@ -27,7 +27,6 @@ plugins:
   - mkdocstrings:
       handlers:
         python:
-          paths: ["."]
           options:
             show_source: true
             show_root_heading: true
