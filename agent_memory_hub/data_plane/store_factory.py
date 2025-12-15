@@ -1,7 +1,10 @@
 """
 Factory for creating session stores.
 """
-from typing import Optional
+from typing import TYPE_CHECKING, Optional
+
+if TYPE_CHECKING:
+    from agent_memory_hub.config.alloydb_config import AlloyDBConfig
 
 from agent_memory_hub.data_plane.adk_session_store import AdkSessionStore, SessionStore
 

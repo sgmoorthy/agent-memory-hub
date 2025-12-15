@@ -45,7 +45,7 @@ Please check off these items as they are completed!
 - [ ] **Vector Search Injection** (Issue #301)
   - _Goal_: Integrate with vector databases (Pinecone, Weaviate) to enable semantic search on memory.
   - _Priority_: 🔥 High
-- [ ] **Memory Expiry (TTL)** (Issue #302)
+- [x] **Memory Expiry (TTL)** (Issue #302) ✅ **Completed in v0.3.0**
   - _Goal_: Allow setting a Time-To-Live for temporary sessions that auto-delete after X hours.
   - _Priority_: Medium
 - [ ] **Encryption at Rest** (Issue #303)

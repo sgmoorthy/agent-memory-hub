@@ -2,7 +2,10 @@
 Public facing Memory Client.
 """
 
-from typing import Any, Optional
+from typing import TYPE_CHECKING, Any, Optional
+
+if TYPE_CHECKING:
+    from agent_memory_hub.config.alloydb_config import AlloyDBConfig
 
 from agent_memory_hub.config.regions import DEFAULT_REGION
 from agent_memory_hub.control_plane.region_guard import RegionGuard
