@@ -56,6 +56,24 @@ By default, this package uses Google Cloud Storage as the backing store.
 2. **Permissions**: The service account requires `storage.objects.create` and `storage.objects.get` permissions on the target bucket.
 3. **Buckets**: Buckets should be named following the convention `memory-hub-{region}-{environment}` (e.g., `memory-hub-asia-south1-prod`).
 
+## Development
+
+### Pre-commit Testing
+
+Before pushing code, run the pre-commit validation script to catch issues early:
+
+```bash
+python scripts/pre_commit_test.py
+```
+
+This runs:
+
+- Linting (Ruff)
+- Security audits (pip-audit, Bandit)
+- Full test suite
+- Coverage check (minimum 70%)
+- Package build validation
+
 ## Security & Compliance
 
 - **No Secrets**: This library does not handle secrets directly. Use IAM roles.
