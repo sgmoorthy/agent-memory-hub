@@ -27,6 +27,7 @@ class MemoryClient:
         backend: str = "adk",
         ttl_seconds: Optional[int] = None,
         alloydb_config: Optional["AlloyDBConfig"] = None,
+        environment: str = "prod",
     ):
         """
         Initialize the MemoryClient.
@@ -39,6 +40,7 @@ class MemoryClient:
             backend: Storage backend ("adk" for GCS, "alloydb" for AlloyDB).
             ttl_seconds: Time-to-live in seconds (None = no expiry).
             alloydb_config: AlloyDB configuration (required if backend="alloydb").
+            environment: Environment context (e.g., "prod", "dev") for resource naming.
         """
         self.agent_id = agent_id
         self.session_id = session_id
@@ -46,6 +48,7 @@ class MemoryClient:
         self.region_restricted = region_restricted
         self.backend = backend
         self.ttl_seconds = ttl_seconds
+        self.environment = environment
         self._tracer = get_tracer()
 
         if region_restricted:
@@ -55,6 +58,7 @@ class MemoryClient:
                 backend=backend,
                 ttl_seconds=ttl_seconds,
                 alloydb_config=alloydb_config,
+                environment=environment,
             )
         else:
             # Fallback or less strict mode not fully implemented in spec, 
@@ -66,6 +70,7 @@ class MemoryClient:
                 backend=backend,
                 ttl_seconds=ttl_seconds,
                 alloydb_config=alloydb_config,
+                environment=environment,
             )
 
     def write(self, value: Any, key: str = "default") -> None:

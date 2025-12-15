@@ -22,14 +22,18 @@ class MemoryRouter:
         backend: str = "adk",
         ttl_seconds: Optional[int] = None,
         alloydb_config: Optional["AlloyDBConfig"] = None,
+        environment: str = "prod",
     ):
         self.region_guard = region_guard
         self.backend = backend
         self.ttl_seconds = ttl_seconds
+        self.environment = environment
         # Initialize store lazily or eagerly? Eagerly for router is fine.
         self.store: SessionStore = StoreFactory.get_store(
             backend=backend, 
             region=region_guard.current_region,
+            bucket_prefix="memory-hub", # Explicitly passing default to be safe, though not strictly needed
+            environment=environment,
             ttl_seconds=ttl_seconds,
             alloydb_config=alloydb_config,
         )

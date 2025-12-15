@@ -17,6 +17,7 @@ class StoreFactory:
         backend: str = "adk", 
         region: str = "us-central1",
         bucket_prefix: str = "memory-hub",
+        environment: str = "prod",
         ttl_seconds: Optional[int] = None,
         alloydb_config: Optional["AlloyDBConfig"] = None,
     ) -> SessionStore:
@@ -27,13 +28,14 @@ class StoreFactory:
             backend: Backend type ("adk" or "alloydb")
             region: GCP region
             bucket_prefix: Prefix for GCS bucket names (adk backend only)
+            environment: Environment for GCS bucket names (e.g., "prod", "dev")
             ttl_seconds: Time-to-live in seconds (None = no expiry)
             alloydb_config: AlloyDB configuration (required for alloydb backend)
         """
         if backend == "adk":
             # Convention: memory-hub-{region}-prod or similar. 
             # Simplified for this example.
-            bucket_name = f"{bucket_prefix}-{region}"
+            bucket_name = f"{bucket_prefix}-{region}-{environment}"
             return AdkSessionStore(
                 bucket_name=bucket_name, region=region, ttl_seconds=ttl_seconds
             )
