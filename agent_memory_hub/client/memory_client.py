@@ -20,7 +20,10 @@ class MemoryClient:
         agent_id: str,
         session_id: str,
         region: str = DEFAULT_REGION,
-        region_restricted: bool = True
+        region_restricted: bool = True,
+        backend: str = "adk",
+        ttl_seconds: Optional[int] = None,
+        alloydb_config: Optional["AlloyDBConfig"] = None,
     ):
         """
         Initialize the MemoryClient.
@@ -30,22 +33,37 @@ class MemoryClient:
             session_id: Unique identifier for the session.
             region: The cloud region where memory should be stored/retrieved.
             region_restricted: If True, enforces strict region checks.
+            backend: Storage backend ("adk" for GCS, "alloydb" for AlloyDB).
+            ttl_seconds: Time-to-live in seconds (None = no expiry).
+            alloydb_config: AlloyDB configuration (required if backend="alloydb").
         """
         self.agent_id = agent_id
         self.session_id = session_id
         self.region = region
         self.region_restricted = region_restricted
+        self.backend = backend
+        self.ttl_seconds = ttl_seconds
         self._tracer = get_tracer()
 
         if region_restricted:
             self._guard = RegionGuard(region)
-            self._router = MemoryRouter(region_guard=self._guard)
+            self._router = MemoryRouter(
+                region_guard=self._guard,
+                backend=backend,
+                ttl_seconds=ttl_seconds,
+                alloydb_config=alloydb_config,
+            )
         else:
             # Fallback or less strict mode not fully implemented in spec, 
             # assuming guard is always used but maybe with relaxed checks if requested.
             # For now, we strictly follow the requested design where region is passed.
             self._guard = RegionGuard(region)
-            self._router = MemoryRouter(region_guard=self._guard)
+            self._router = MemoryRouter(
+                region_guard=self._guard,
+                backend=backend,
+                ttl_seconds=ttl_seconds,
+                alloydb_config=alloydb_config,
+            )
 
     def write(self, value: Any, key: str = "default") -> None:
         """
@@ -83,3 +101,4 @@ class MemoryClient:
             
             composite_key = f"{self.agent_id}/{key}"
             return self._router.read(self.session_id, composite_key)
+

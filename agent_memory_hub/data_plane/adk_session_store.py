@@ -5,9 +5,14 @@ Google ADK-compatible implementation.
 
 import abc
 import json
+from datetime import datetime
 from typing import Any, Optional
 
 from agent_memory_hub.utils.telemetry import get_tracer
+from agent_memory_hub.utils.ttl_manager import (
+    get_current_timestamp,
+    is_expired,
+)
 
 
 class SessionStore(abc.ABC):
@@ -30,9 +35,12 @@ class AdkSessionStore(SessionStore):
     Uses Google Cloud Storage as the underlying persistence layer.
     """
     
-    def __init__(self, bucket_name: str, region: str):
+    def __init__(
+        self, bucket_name: str, region: str, ttl_seconds: Optional[int] = None
+    ):
         self.bucket_name = bucket_name
         self.region = region
+        self.ttl_seconds = ttl_seconds
         self._tracer = get_tracer()
         # Lazy initialization to avoid runtime side effects on import
         self._client = None
@@ -63,8 +71,16 @@ class AdkSessionStore(SessionStore):
             
             bucket = self._get_bucket()
             blob = bucket.blob(blob_path)
+            
+            # Store with metadata including timestamp and TTL
+            metadata = {
+                "value": value,
+                "created_at": get_current_timestamp().isoformat(),
+                "ttl_seconds": self.ttl_seconds,
+            }
+            
             blob.upload_from_string(
-                json.dumps({"value": value}), 
+                json.dumps(metadata), 
                 content_type="application/json"
             )
 
@@ -82,4 +98,48 @@ class AdkSessionStore(SessionStore):
                 
             content = blob.download_as_text()
             data = json.loads(content)
+            
+            # Check for TTL expiry
+            if "created_at" in data and "ttl_seconds" in data:
+                created_at = datetime.fromisoformat(data["created_at"])
+                ttl = data["ttl_seconds"]
+                
+                if ttl is not None and is_expired(created_at, ttl):
+                    # Delete expired blob
+                    blob.delete()
+                    return None
+            
             return data.get("value")
+    
+    def cleanup_expired(self, session_id: Optional[str] = None) -> int:
+        """
+        Manually cleanup expired blobs.
+        
+        Args:
+            session_id: Optional session ID to limit cleanup scope
+            
+        Returns:
+            Number of blobs deleted
+        """
+        bucket = self._get_bucket()
+        prefix = f"sessions/{session_id}/" if session_id else "sessions/"
+        
+        deleted_count = 0
+        for blob in bucket.list_blobs(prefix=prefix):
+            try:
+                content = blob.download_as_text()
+                data = json.loads(content)
+                
+                if "created_at" in data and "ttl_seconds" in data:
+                    created_at = datetime.fromisoformat(data["created_at"])
+                    ttl = data["ttl_seconds"]
+                    
+                    if ttl is not None and is_expired(created_at, ttl):
+                        blob.delete()
+                        deleted_count += 1
+            except Exception:
+                # Skip blobs that can't be parsed
+                continue
+        
+        return deleted_count
+

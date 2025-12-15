@@ -16,14 +16,19 @@ class MemoryRouter:
     def __init__(
         self, 
         region_guard: RegionGuard, 
-        backend: str = "adk"
+        backend: str = "adk",
+        ttl_seconds: Optional[int] = None,
+        alloydb_config: Optional["AlloyDBConfig"] = None,
     ):
         self.region_guard = region_guard
         self.backend = backend
+        self.ttl_seconds = ttl_seconds
         # Initialize store lazily or eagerly? Eagerly for router is fine.
         self.store: SessionStore = StoreFactory.get_store(
             backend=backend, 
-            region=region_guard.current_region
+            region=region_guard.current_region,
+            ttl_seconds=ttl_seconds,
+            alloydb_config=alloydb_config,
         )
 
     def write(self, session_id: str, key: str, value: Any) -> None:
@@ -40,3 +45,4 @@ class MemoryRouter:
         """
         self.region_guard.check_residency(self.region_guard.current_region)
         return self.store.read(session_id, key)
+
