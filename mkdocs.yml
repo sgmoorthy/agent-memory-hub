@@ -1,5 +1,6 @@
 site_name: Agent Memory Hub
 site_description: Enterprise-grade agent memory management solution with region governance.
+site_url: https://sgmoorthy.github.io/agent-memory-hub/
 theme:
   name: material
   features:
