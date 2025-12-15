@@ -1,23 +1,18 @@
 import pytest
-# Ensure ADK import check is bypassed for testing
-from typing import Dict, Any
+from unittest.mock import MagicMock, patch
 from typing import Dict, Any, Optional
 
-from agent_memory_hub.data_plane.alloydb_session_store import AlloyDBSessionStore, ADK_AVAILABLE
 from agent_memory_hub.config.alloydb_config import AlloyDBConfig
+from agent_memory_hub.data_plane.alloydb_session_store import AlloyDBSessionStore
 
-# Force ADK_AVAILABLE to True for test environment
-global ADK_AVAILABLE
-ADK_AVAILABLE = True
-
-# Simple in‑memory mock for the ADK DatabaseSessionService
+# Mocks to simulate ADK classes
 class MockSession:
-    def __init__(self, session_id: str):
-        self.id = session_id
+    def __init__(self, id, app_name, user_id):
+        self.id = id
         self.state: Dict[str, Any] = {}
 
-class MockSessionService:
-    def __init__(self):
+class MockDatabaseSessionService:
+    def __init__(self, database_uri, pool_size, max_overflow):
         self.sessions: Dict[str, MockSession] = {}
 
     def get_session(self, session_id: str) -> MockSession:
@@ -27,12 +22,10 @@ class MockSessionService:
         self.sessions[session.id] = session
 
     def update_session(self, session: MockSession) -> None:
-        # In a real service this would persist; here we just keep the dict reference.
         self.sessions[session.id] = session
 
 @pytest.fixture
 def store():
-    # Minimal config – values are not used by the mock service
     cfg = AlloyDBConfig(
         user="test",
         password="test",
@@ -41,10 +34,16 @@ def store():
         pool_size=1,
         max_overflow=0,
     )
-    s = AlloyDBSessionStore(config=cfg, ttl_seconds=1)
-    # Replace the real ADK service with our mock
-    s.session_service = MockSessionService()
-    return s
+    
+    # We must patch multiple things because the module might not have ADK installed
+    with patch("agent_memory_hub.data_plane.alloydb_session_store.ADK_AVAILABLE", True), \
+         patch("agent_memory_hub.data_plane.alloydb_session_store.DatabaseSessionService", MockDatabaseSessionService), \
+         patch("agent_memory_hub.data_plane.alloydb_session_store.Session", MockSession):
+         
+        s = AlloyDBSessionStore(config=cfg, ttl_seconds=1)
+        # We don't need to manually replace session_service now because 
+        # __init__ will use our MockDatabaseSessionService from the patch
+        return s
 
 def test_write_and_read_within_ttl(store):
     store.write("sess1", "key1", "value1")
