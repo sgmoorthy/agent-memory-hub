@@ -7,6 +7,8 @@ import abc
 import json
 from typing import Any, Optional
 
+from agent_memory_hub.utils.telemetry import get_tracer
+
 
 class SessionStore(abc.ABC):
     """Abstract interface for memory storage backends."""
@@ -31,6 +33,7 @@ class AdkSessionStore(SessionStore):
     def __init__(self, bucket_name: str, region: str):
         self.bucket_name = bucket_name
         self.region = region
+        self._tracer = get_tracer()
         # Lazy initialization to avoid runtime side effects on import
         self._client = None
         self._bucket = None
@@ -53,20 +56,30 @@ class AdkSessionStore(SessionStore):
         return f"sessions/{session_id}/{key}.json"
 
     def write(self, session_id: str, key: str, value: Any) -> None:
-        bucket = self._get_bucket()
-        blob = bucket.blob(self._get_blob_path(session_id, key))
-        blob.upload_from_string(
-            json.dumps({"value": value}), 
-            content_type="application/json"
-        )
+        with self._tracer.start_as_current_span("AdkSessionStore.write") as span:
+            blob_path = self._get_blob_path(session_id, key)
+            span.set_attribute("bucket.name", self.bucket_name)
+            span.set_attribute("object.key", blob_path)
+            
+            bucket = self._get_bucket()
+            blob = bucket.blob(blob_path)
+            blob.upload_from_string(
+                json.dumps({"value": value}), 
+                content_type="application/json"
+            )
 
     def read(self, session_id: str, key: str) -> Optional[Any]:
-        bucket = self._get_bucket()
-        blob = bucket.blob(self._get_blob_path(session_id, key))
-        
-        if not blob.exists():
-            return None
+        with self._tracer.start_as_current_span("AdkSessionStore.read") as span:
+            blob_path = self._get_blob_path(session_id, key)
+            span.set_attribute("bucket.name", self.bucket_name)
+            span.set_attribute("object.key", blob_path)
             
-        content = blob.download_as_text()
-        data = json.loads(content)
-        return data.get("value")
+            bucket = self._get_bucket()
+            blob = bucket.blob(blob_path)
+            
+            if not blob.exists():
+                return None
+                
+            content = blob.download_as_text()
+            data = json.loads(content)
+            return data.get("value")

@@ -7,6 +7,7 @@ from typing import Any, Optional
 from agent_memory_hub.config.regions import DEFAULT_REGION
 from agent_memory_hub.control_plane.region_guard import RegionGuard
 from agent_memory_hub.routing.memory_router import MemoryRouter
+from agent_memory_hub.utils.telemetry import get_tracer
 
 
 class MemoryClient:
@@ -34,6 +35,7 @@ class MemoryClient:
         self.session_id = session_id
         self.region = region
         self.region_restricted = region_restricted
+        self._tracer = get_tracer()
 
         if region_restricted:
             self._guard = RegionGuard(region)
@@ -53,9 +55,15 @@ class MemoryClient:
             value: The data to store.
             key: specific key or context for the memory (e.g., 'episodic', 'semantic').
         """
-        # Composite key could include agent_id to namespace it
-        composite_key = f"{self.agent_id}/{key}"
-        self._router.write(self.session_id, composite_key, value)
+        with self._tracer.start_as_current_span("MemoryClient.write") as span:
+            span.set_attribute("agent.id", self.agent_id)
+            span.set_attribute("session.id", self.session_id)
+            span.set_attribute("region", self.region)
+            span.set_attribute("memory.key", key)
+            
+            # Composite key could include agent_id to namespace it
+            composite_key = f"{self.agent_id}/{key}"
+            self._router.write(self.session_id, composite_key, value)
 
     def recall(self, key: str = "default") -> Optional[Any]:
         """
@@ -67,5 +75,11 @@ class MemoryClient:
         Returns:
             The stored value or None if not found.
         """
-        composite_key = f"{self.agent_id}/{key}"
-        return self._router.read(self.session_id, composite_key)
+        with self._tracer.start_as_current_span("MemoryClient.recall") as span:
+            span.set_attribute("agent.id", self.agent_id)
+            span.set_attribute("session.id", self.session_id)
+            span.set_attribute("region", self.region)
+            span.set_attribute("memory.key", key)
+            
+            composite_key = f"{self.agent_id}/{key}"
+            return self._router.read(self.session_id, composite_key)
