@@ -18,7 +18,7 @@ Please check off these items as they are completed!
 
 ### Observability & Monitoring
 
-- [ ] **OpenTelemetry Integration** (Issue #101)
+- [x] **OpenTelemetry Integration** (Issue #101) ✅ **Completed in v0.2.0**
   - _Goal_: Add tracing spans to `read()` and `write()` operations to visualize latency and errors.
   - _Priority_: 🔥 High
 - [ ] **Structured Logging** (Issue #102)
