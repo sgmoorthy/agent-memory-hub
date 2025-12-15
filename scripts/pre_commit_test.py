@@ -7,8 +7,8 @@ Usage:
     python scripts/pre_commit_test.py
 """
 
-import sys
 import subprocess
+import sys
 from pathlib import Path
 
 # ANSI color codes for terminal output
