@@ -10,6 +10,6 @@
 - [x] **Verification**
   - [x] Create `tests/test_telemetry.py`
   - [/] Run tests (Skipped local due to env issues, trusting CI)
-- [ ] **Release**
-  - [ ] Commit changes
-  - [ ] Push tag/create release for v0.2.0
+- [/] **Release**
+  - [x] Commit changes -> Pushed to `main`
+  - [ ] **ACTION REQUIRED**: Create Release v0.2.0 on GitHub to trigger PyPI publish
