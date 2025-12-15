@@ -28,7 +28,7 @@ def run_command(cmd, description):
     """Run a command and return success status."""
     print(f"{YELLOW}▶ {description}...{RESET}")
     try:
-        result = subprocess.run(
+        subprocess.run(
             cmd,
             shell=True,
             check=True,
