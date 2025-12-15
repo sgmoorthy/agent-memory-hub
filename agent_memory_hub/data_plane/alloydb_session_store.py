@@ -1,50 +1,24 @@
 """
-AlloyDB (PostgreSQL) session store implementation.
+AlloyDB (PostgreSQL) session store implementation using ADK's DatabaseSessionService.
 """
-from datetime import datetime
 from typing import Any, Optional
 
-from sqlalchemy import (
-    Column,
-    DateTime,
-    Integer,
-    String,
-    create_engine,
-    select,
-)
-from sqlalchemy.dialects.postgresql import JSONB
-from sqlalchemy.orm import Session, declarative_base, sessionmaker
+try:
+    from google.adk.sessions import DatabaseSessionService, Session
+    ADK_AVAILABLE = True
+except ImportError:
+    ADK_AVAILABLE = False
 
 from agent_memory_hub.config.alloydb_config import AlloyDBConfig
 from agent_memory_hub.data_plane.adk_session_store import SessionStore
 from agent_memory_hub.utils.telemetry import get_tracer
-from agent_memory_hub.utils.ttl_manager import get_current_timestamp
-
-Base = declarative_base()
-
-
-class MemorySession(Base):
-    """SQLAlchemy model for memory sessions."""
-
-    __tablename__ = "memory_sessions"
-
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    session_id = Column(String(255), nullable=False, index=True)
-    key = Column(String(255), nullable=False, index=True)
-    value = Column(JSONB, nullable=False)
-    created_at = Column(DateTime, nullable=False, default=get_current_timestamp)
-    expires_at = Column(DateTime, nullable=True, index=True)
-    region = Column(String(50), nullable=False)
-
-    __table_args__ = (
-        {"schema": "public"},
-    )
+from agent_memory_hub.utils.ttl_manager import get_current_timestamp, is_expired
 
 
 class AlloyDBSessionStore(SessionStore):
     """
-    AlloyDB (PostgreSQL) session store implementation.
-    Uses SQLAlchemy for database operations with connection pooling.
+    AlloyDB (PostgreSQL) session store using ADK's DatabaseSessionService.
+    Leverages ADK's built-in session management for better ecosystem integration.
     """
 
     def __init__(
@@ -53,35 +27,40 @@ class AlloyDBSessionStore(SessionStore):
         ttl_seconds: Optional[int] = None,
     ):
         """
-        Initialize AlloyDB session store.
+        Initialize AlloyDB session store using ADK's DatabaseSessionService.
 
         Args:
             config: AlloyDB connection configuration
             ttl_seconds: Default TTL for entries (None = no expiry)
+        
+        Raises:
+            ImportError: If google-adk is not installed
         """
+        if not ADK_AVAILABLE:
+            raise ImportError(
+                "google-adk is required for AlloyDB backend. "
+                "Install with: pip install google-adk"
+            )
+        
         self.config = config
         self.ttl_seconds = ttl_seconds
         self._tracer = get_tracer()
 
-        # Create engine with connection pooling
-        self.engine = create_engine(
-            config.get_connection_string(),
+        # Create ADK DatabaseSessionService with PostgreSQL connection
+        database_uri = (
+            f"postgresql+psycopg2://{config.user}:{config.password}@"
+            f"/{config.database}?host=/cloudsql/{config.instance_connection_name}"
+        )
+        
+        self.session_service = DatabaseSessionService(
+            database_uri=database_uri,
             pool_size=config.pool_size,
             max_overflow=config.max_overflow,
-            pool_pre_ping=True,  # Verify connections before using
         )
-
-        # Create session factory
-        self.SessionLocal = sessionmaker(
-            autocommit=False, autoflush=False, bind=self.engine
-        )
-
-        # Create tables if they don't exist
-        Base.metadata.create_all(bind=self.engine)
 
     def write(self, session_id: str, key: str, value: Any) -> None:
         """
-        Write a value to AlloyDB.
+        Write a value using ADK's session service.
 
         Args:
             session_id: Session identifier
@@ -93,48 +72,35 @@ class AlloyDBSessionStore(SessionStore):
             span.set_attribute("memory.key", key)
             span.set_attribute("database", self.config.database)
 
-            db: Session = self.SessionLocal()
+            # Get or create ADK session
             try:
-                # Calculate expiry if TTL is set
-                expires_at = None
-                if self.ttl_seconds is not None:
-                    from agent_memory_hub.utils.ttl_manager import (
-                        get_expiry_timestamp,
-                    )
-
-                    expires_at = get_expiry_timestamp(self.ttl_seconds)
-
-                # Check if entry exists
-                stmt = select(MemorySession).where(
-                    MemorySession.session_id == session_id,
-                    MemorySession.key == key,
+                session = self.session_service.get_session(session_id)
+            except Exception:
+                # Session doesn't exist, create it
+                session = Session(
+                    id=session_id,
+                    app_name="agent-memory-hub",
+                    user_id="system",
                 )
-                existing = db.execute(stmt).scalar_one_or_none()
+                self.session_service.create_session(session)
 
-                if existing:
-                    # Update existing entry
-                    existing.value = value
-                    existing.created_at = get_current_timestamp()
-                    existing.expires_at = expires_at
-                else:
-                    # Insert new entry
-                    entry = MemorySession(
-                        session_id=session_id,
-                        key=key,
-                        value=value,
-                        created_at=get_current_timestamp(),
-                        expires_at=expires_at,
-                        region=self.config.region,
-                    )
-                    db.add(entry)
-
-                db.commit()
-            finally:
-                db.close()
+            # Store value in session state with TTL metadata
+            metadata = {
+                "value": value,
+                "created_at": get_current_timestamp().isoformat(),
+                "ttl_seconds": self.ttl_seconds,
+            }
+            
+            # Update session state
+            if not hasattr(session, 'state') or session.state is None:
+                session.state = {}
+            session.state[key] = metadata
+            
+            self.session_service.update_session(session)
 
     def read(self, session_id: str, key: str) -> Optional[Any]:
         """
-        Read a value from AlloyDB.
+        Read a value using ADK's session service.
 
         Args:
             session_id: Session identifier
@@ -148,31 +114,39 @@ class AlloyDBSessionStore(SessionStore):
             span.set_attribute("memory.key", key)
             span.set_attribute("database", self.config.database)
 
-            db: Session = self.SessionLocal()
             try:
-                stmt = select(MemorySession).where(
-                    MemorySession.session_id == session_id,
-                    MemorySession.key == key,
-                )
-                entry = db.execute(stmt).scalar_one_or_none()
+                session = self.session_service.get_session(session_id)
+            except Exception:
+                return None
 
-                if not entry:
-                    return None
+            if not hasattr(session, 'state') or session.state is None:
+                return None
 
-                # Check if expired
-                if entry.expires_at and datetime.now() > entry.expires_at:
+            if key not in session.state:
+                return None
+
+            metadata = session.state[key]
+            
+            # Check for TTL expiry
+            if isinstance(metadata, dict) and "created_at" in metadata:
+                from datetime import datetime
+                created_at = datetime.fromisoformat(metadata["created_at"])
+                ttl = metadata.get("ttl_seconds")
+                
+                if ttl is not None and is_expired(created_at, ttl):
                     # Delete expired entry
-                    db.delete(entry)
-                    db.commit()
+                    del session.state[key]
+                    self.session_service.update_session(session)
                     return None
-
-                return entry.value
-            finally:
-                db.close()
+                
+                return metadata.get("value")
+            
+            # Backward compatibility for non-metadata values
+            return metadata
 
     def cleanup_expired(self, session_id: Optional[str] = None) -> int:
         """
-        Manually cleanup expired entries.
+        Manually cleanup expired entries using ADK's session service.
 
         Args:
             session_id: Optional session ID to limit cleanup scope
@@ -180,23 +154,35 @@ class AlloyDBSessionStore(SessionStore):
         Returns:
             Number of entries deleted
         """
-        db: Session = self.SessionLocal()
-        try:
-            stmt = select(MemorySession).where(
-                MemorySession.expires_at.isnot(None),
-                MemorySession.expires_at < datetime.now(),
-            )
-
-            if session_id:
-                stmt = stmt.where(MemorySession.session_id == session_id)
-
-            expired_entries = db.execute(stmt).scalars().all()
-            count = len(expired_entries)
-
-            for entry in expired_entries:
-                db.delete(entry)
-
-            db.commit()
-            return count
-        finally:
-            db.close()
+        from datetime import datetime
+        
+        deleted_count = 0
+        
+        if session_id:
+            # Cleanup specific session
+            try:
+                session = self.session_service.get_session(session_id)
+                if hasattr(session, 'state') and session.state:
+                    keys_to_delete = []
+                    for key, metadata in session.state.items():
+                        if isinstance(metadata, dict) and "created_at" in metadata:
+                            created_at = datetime.fromisoformat(metadata["created_at"])
+                            ttl = metadata.get("ttl_seconds")
+                            if ttl and is_expired(created_at, ttl):
+                                keys_to_delete.append(key)
+                    
+                    for key in keys_to_delete:
+                        del session.state[key]
+                        deleted_count += 1
+                    
+                    if keys_to_delete:
+                        self.session_service.update_session(session)
+            except Exception:
+                pass
+        else:
+            # Cleanup all sessions (expensive operation)
+            # Note: ADK doesn't provide list_all_sessions, so this is limited
+            # In production, consider using a scheduled job with direct DB access
+            pass
+        
+        return deleted_count
