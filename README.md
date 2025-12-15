@@ -62,4 +62,9 @@ By default, this package uses Google Cloud Storage as the backing store.
 - **Dependency Pinning**: All dependencies are pinned to secure versions.
 - **Audit**: Compatible with `pip-audit` and `bandit`.
 
+## Roadmap & Contributing
+
+We have a detailed feature roadmap including Observability, AWS support, and Vector Search.
+Check out [ROADMAP.md](ROADMAP.md) to see what's planned and how you can contribute!
+
 See [SECURITY.md](SECURITY.md) for vulnerability disclosure.
