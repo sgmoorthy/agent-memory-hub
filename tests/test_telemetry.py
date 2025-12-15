@@ -1,5 +1,6 @@
 import unittest
 from unittest.mock import MagicMock
+
 from opentelemetry import trace
 from opentelemetry.sdk.trace import TracerProvider
 from opentelemetry.sdk.trace.export import SimpleSpanProcessor
@@ -19,14 +20,16 @@ class TestTelemetry(unittest.TestCase):
         trace.set_tracer_provider(provider)
         
     def test_client_write_span(self):
-        client = MemoryClient("test-agent", "test-session", region="us-central1", region_restricted=False)
+        client = MemoryClient(
+            "test-agent", "test-session", region="us-central1", region_restricted=False
+        )
         # Mock internal router to avoid side effects
         client._router = MagicMock()
         
         client.write("data", "episodic")
         
         spans = self.exporter.get_finished_spans()
-        # We might get other spans if other tests ran? No, new instance per test ideally, 
+        # We might get other spans if other tests ran? No, new instance per test.
         # but global tracer provider might persist?
         # TracerProvider is global if set via trace.set_tracer_provider
         
@@ -40,7 +43,9 @@ class TestTelemetry(unittest.TestCase):
         store = AdkSessionStore("test-bucket", "us-central1")
         # Mock interactions
         store._get_bucket = MagicMock()
-        store._get_bucket.return_value.blob.return_value.upload_from_string = MagicMock()
+        store._get_bucket = MagicMock()
+        store._get_bucket.return_value.blob.return_value \
+            .upload_from_string = MagicMock()
         
         store.write("sess", "key", "val")
         

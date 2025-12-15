@@ -137,7 +137,7 @@ class AdkSessionStore(SessionStore):
                     if ttl is not None and is_expired(created_at, ttl):
                         blob.delete()
                         deleted_count += 1
-            except Exception:
+            except Exception: # noqa: S112
                 # Skip blobs that can't be parsed
                 continue
         

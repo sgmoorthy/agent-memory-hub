@@ -1,9 +1,11 @@
 """Tests for MemoryRouter routing layer."""
-import pytest
 from unittest.mock import MagicMock, patch
-from agent_memory_hub.routing.memory_router import MemoryRouter
-from agent_memory_hub.control_plane.region_guard import RegionGuard
+
+import pytest
+
 from agent_memory_hub.config.regions import REGION_US_CENTRAL1
+from agent_memory_hub.control_plane.region_guard import RegionGuard
+from agent_memory_hub.routing.memory_router import MemoryRouter
 
 
 class TestMemoryRouter:

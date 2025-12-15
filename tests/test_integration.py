@@ -1,8 +1,8 @@
 """Integration tests for end-to-end flows."""
-import pytest
 from unittest.mock import MagicMock, patch
+
 from agent_memory_hub import MemoryClient
-from agent_memory_hub.config.regions import REGION_US_CENTRAL1, REGION_EUROPE_WEST1
+from agent_memory_hub.config.regions import REGION_US_CENTRAL1
 
 
 class TestIntegration:
@@ -70,10 +70,12 @@ class TestIntegration:
     @patch("google.cloud.storage.Client")
     def test_telemetry_span_propagation(self, mock_storage_client):
         """Test that telemetry spans are created throughout the stack."""
+        from opentelemetry import trace
         from opentelemetry.sdk.trace import TracerProvider
         from opentelemetry.sdk.trace.export import SimpleSpanProcessor
-        from opentelemetry.sdk.trace.export.in_memory_span_exporter import InMemorySpanExporter
-        from opentelemetry import trace
+        from opentelemetry.sdk.trace.export.in_memory_span_exporter import (
+            InMemorySpanExporter,
+        )
         
         # Setup telemetry
         exporter = InMemorySpanExporter()

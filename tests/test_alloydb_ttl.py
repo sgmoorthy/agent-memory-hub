@@ -1,9 +1,11 @@
+from typing import Any, Dict
+from unittest.mock import patch
+
 import pytest
-from unittest.mock import MagicMock, patch
-from typing import Dict, Any, Optional
 
 from agent_memory_hub.config.alloydb_config import AlloyDBConfig
 from agent_memory_hub.data_plane.alloydb_session_store import AlloyDBSessionStore
+
 
 # Mocks to simulate ADK classes
 class MockSession:
@@ -28,7 +30,7 @@ class MockDatabaseSessionService:
 def store():
     cfg = AlloyDBConfig(
         user="test",
-        password="test",
+        password="test", # noqa: S106
         database="testdb",
         instance_connection_name="proj:region:inst",
         pool_size=1,
@@ -36,9 +38,14 @@ def store():
     )
     
     # We must patch multiple things because the module might not have ADK installed
-    with patch("agent_memory_hub.data_plane.alloydb_session_store.ADK_AVAILABLE", True), \
-         patch("agent_memory_hub.data_plane.alloydb_session_store.DatabaseSessionService", MockDatabaseSessionService), \
-         patch("agent_memory_hub.data_plane.alloydb_session_store.Session", MockSession):
+    with patch(
+        "agent_memory_hub.data_plane.alloydb_session_store.ADK_AVAILABLE", True
+    ), \
+         patch("agent_memory_hub.data_plane.alloydb_session_store.DatabaseSessionService", 
+               MockDatabaseSessionService), \
+         patch(
+             "agent_memory_hub.data_plane.alloydb_session_store.Session", MockSession
+         ):
          
         s = AlloyDBSessionStore(config=cfg, ttl_seconds=1)
         # We don't need to manually replace session_service now because 

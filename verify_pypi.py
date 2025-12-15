@@ -38,8 +38,14 @@ try:
     
     print("\n[Optional] Testing GCS Connection...")
     if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-        print("ℹ️  Skipping actual GCS calls because GOOGLE_APPLICATION_CREDENTIALS is not set.")
-        print("    (This is expected if you haven't set up auth for this test environment)")
+        print(
+            "ℹ️  Skipping actual GCS calls because "
+            "GOOGLE_APPLICATION_CREDENTIALS is not set."
+        )
+        print(
+            "    (This is expected if you haven't set up auth "
+            "for this test environment)"
+        )
     else:
         try:
             client.read("test_key")  # Assuming read is safer/easier

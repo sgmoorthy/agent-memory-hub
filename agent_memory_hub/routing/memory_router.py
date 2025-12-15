@@ -32,7 +32,8 @@ class MemoryRouter:
         self.store: SessionStore = StoreFactory.get_store(
             backend=backend, 
             region=region_guard.current_region,
-            bucket_prefix="memory-hub", # Explicitly passing default to be safe, though not strictly needed
+            # Explicitly passing default to be safe, though not strictly needed
+            bucket_prefix="memory-hub",
             environment=environment,
             ttl_seconds=ttl_seconds,
             alloydb_config=alloydb_config,

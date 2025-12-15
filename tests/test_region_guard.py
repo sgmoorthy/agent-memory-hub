@@ -1,7 +1,8 @@
 """Tests for RegionGuard control plane component."""
 import pytest
+
+from agent_memory_hub.config.regions import REGION_EUROPE_WEST1, REGION_US_CENTRAL1
 from agent_memory_hub.control_plane.region_guard import RegionGuard
-from agent_memory_hub.config.regions import REGION_US_CENTRAL1, REGION_EUROPE_WEST1
 
 
 class TestRegionGuard:
@@ -12,7 +13,9 @@ class TestRegionGuard:
         
     def test_invalid_region_raises_error(self):
         """Test that invalid regions raise ValueError."""
-        with pytest.raises(ValueError, match="Region 'invalid-region' is not supported"):
+        with pytest.raises(
+            ValueError, match="Region 'invalid-region' is not supported"
+        ):
             RegionGuard("invalid-region")
     
     def test_all_supported_regions(self):
@@ -35,7 +38,7 @@ class TestRegionGuard:
     def test_region_guard_immutability(self):
         """Test that region cannot be changed after initialization."""
         guard = RegionGuard(REGION_US_CENTRAL1)
-        original_region = guard.region
+        # original_region = guard.region
         
         # Attempt to modify (should not affect internal state if properly designed)
         with pytest.raises(AttributeError):

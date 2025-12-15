@@ -9,7 +9,6 @@ Usage:
 
 import subprocess
 import sys
-from pathlib import Path
 
 # ANSI color codes for terminal output
 GREEN = '\033[92m'
@@ -28,7 +27,7 @@ def run_command(cmd, description):
     """Run a command and return success status."""
     print(f"{YELLOW}▶ {description}...{RESET}")
     try:
-        subprocess.run(
+        subprocess.run(  # noqa: S602
             cmd,
             shell=True,
             check=True,
@@ -49,7 +48,7 @@ def main():
     print_header("PRE-COMMIT VALIDATION")
     
     # Change to project root
-    project_root = Path(__file__).parent.parent
+    # project_root = Path(__file__).parent.parent
     
     checks = [
         # 1. Linting

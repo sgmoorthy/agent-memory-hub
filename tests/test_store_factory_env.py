@@ -1,6 +1,6 @@
-import pytest
-from agent_memory_hub.data_plane.store_factory import StoreFactory
 from agent_memory_hub.data_plane.adk_session_store import AdkSessionStore
+from agent_memory_hub.data_plane.store_factory import StoreFactory
+
 
 def test_get_store_with_environment():
     """Test that StoreFactory creates bucket name with environment."""
@@ -43,6 +43,7 @@ def test_memory_client_integration_stub():
     # Inspect internal router store to verify bucket name
     # Note: MemoryClient._router is private, testing internals for verification
     store = client._router.store
-    # Default prefix in MemoryRouter is "memory-hub" (via defaults or explicitly if we updated it)
+    # Default prefix in MemoryRouter is "memory-hub" 
+    # (via defaults or explicitly if we updated it)
     # StoreFactory default prefix is "memory-hub"
     assert store.bucket_name == "memory-hub-us-central1-dev"

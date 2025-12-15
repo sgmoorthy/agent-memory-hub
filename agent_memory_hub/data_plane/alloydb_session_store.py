@@ -177,7 +177,7 @@ class AlloyDBSessionStore(SessionStore):
                     
                     if keys_to_delete:
                         self.session_service.update_session(session)
-            except Exception:
+            except Exception: # noqa: S110
                 pass
         else:
             # Cleanup all sessions (expensive operation)

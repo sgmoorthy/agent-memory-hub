@@ -1,0 +1,199 @@
+﻿S112 `try`-`except`-`continue` detected, consider logging the exception
+   --> agent_memory_hub\data_plane\adk_session_store.py:140:13
+    |
+138 |                           blob.delete()
+139 |                           deleted_count += 1
+140 | /             except Exception:
+141 | |                 # Skip blobs that can't be parsed
+142 | |                 continue
+    | |________________________^
+143 |           
+144 |           return deleted_count
+    |
+
+S110 `try`-`except`-`pass` detected, consider logging the exception
+   --> agent_memory_hub\data_plane\alloydb_session_store.py:180:13
+    |
+178 |                       if keys_to_delete:
+179 |                           self.session_service.update_session(session)
+180 | /             except Exception:
+181 | |                 pass
+    | |____________________^
+182 |           else:
+183 |               # Cleanup all sessions (expensive operation)
+    |
+
+E501 Line too long (107 > 88)
+  --> agent_memory_hub\routing\memory_router.py:35:89
+   |
+33 |             backend=backend, 
+34 |             region=region_guard.current_region,
+35 |             bucket_prefix="memory-hub", # Explicitly passing default to be safe, though not strictly needed
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^
+36 |             environment=environment,
+37 |             ttl_seconds=ttl_seconds,
+   |
+
+S106 Possible hardcoded password assigned to argument: "password"
+  --> examples\alloydb_example.py:15:5
+   |
+13 |     database="memory_db",
+14 |     user="memory_user",
+15 |     password="secure_password",  # Use Secret Manager in production!
+   |     ^^^^^^^^^^^^^^^^^^^^^^^^^^
+16 |     region="us-central1",
+17 |     pool_size=5,
+   |
+
+S602 `subprocess` call with `shell=True` identified, security issue
+  --> scripts\pre_commit_test.py:31:9
+   |
+29 |     print(f"{YELLOW}▶ {description}...{RESET}")
+30 |     try:
+31 |         subprocess.run(
+   |         ^^^^^^^^^^^^^^
+32 |             cmd,
+33 |             shell=True,
+   |
+
+F841 Local variable `project_root` is assigned to but never used
+  --> scripts\pre_commit_test.py:52:5
+   |
+51 |     # Change to project root
+52 |     project_root = Path(__file__).parent.parent
+   |     ^^^^^^^^^^^^
+53 |     
+54 |     checks = [
+   |
+help: Remove assignment to unused variable `project_root`
+
+S106 Possible hardcoded password assigned to argument: "password"
+  --> tests\test_alloydb_ttl.py:33:9
+   |
+31 |     cfg = AlloyDBConfig(
+32 |         user="test",
+33 |         password="test",
+   |         ^^^^^^^^^^^^^^^
+34 |         database="testdb",
+35 |         instance_connection_name="proj:region:inst",
+   |
+
+E501 Line too long (90 > 88)
+  --> tests\test_alloydb_ttl.py:41:89
+   |
+40 |     # We must patch multiple things because the module might not have ADK installed
+41 |     with patch("agent_memory_hub.data_plane.alloydb_session_store.ADK_AVAILABLE", True), \
+   |                                                                                         ^^
+42 |          patch("agent_memory_hub.data_plane.alloydb_session_store.DatabaseSessionService", MockDatabaseSessionService), \
+43 |          patch("agent_memory_hub.data_plane.alloydb_session_store.Session", MockSession):
+   |
+
+E501 Line too long (121 > 88)
+  --> tests\test_alloydb_ttl.py:42:89
+   |
+40 |     # We must patch multiple things because the module might not have ADK installed
+41 |     with patch("agent_memory_hub.data_plane.alloydb_session_store.ADK_AVAILABLE", True), \
+42 |          patch("agent_memory_hub.data_plane.alloydb_session_store.DatabaseSessionService", MockDatabaseSessionService), \
+   |                                                                                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+43 |          patch("agent_memory_hub.data_plane.alloydb_session_store.Session", MockSession):
+   |
+
+E501 Line too long (89 > 88)
+  --> tests\test_alloydb_ttl.py:43:89
+   |
+41 |     with patch("agent_memory_hub.data_plane.alloydb_session_store.ADK_AVAILABLE", True), \
+42 |          patch("agent_memory_hub.data_plane.alloydb_session_store.DatabaseSessionService", MockDatabaseSessionService), \
+43 |          patch("agent_memory_hub.data_plane.alloydb_session_store.Session", MockSession):
+   |                                                                                         ^
+44 |          
+45 |         s = AlloyDBSessionStore(config=cfg, ttl_seconds=1)
+   |
+
+E501 Line too long (89 > 88)
+  --> tests\test_region_guard.py:16:89
+   |
+14 |     def test_invalid_region_raises_error(self):
+15 |         """Test that invalid regions raise ValueError."""
+16 |         with pytest.raises(ValueError, match="Region 'invalid-region' is not supported"):
+   |                                                                                         ^
+17 |             RegionGuard("invalid-region")
+   |
+
+F841 Local variable `original_region` is assigned to but never used
+  --> tests\test_region_guard.py:39:9
+   |
+37 |         """Test that region cannot be changed after initialization."""
+38 |         guard = RegionGuard(REGION_US_CENTRAL1)
+39 |         original_region = guard.region
+   |         ^^^^^^^^^^^^^^^
+40 |         
+41 |         # Attempt to modify (should not affect internal state if properly designed)
+   |
+help: Remove assignment to unused variable `original_region`
+
+E501 Line too long (98 > 88)
+  --> tests\test_store_factory_env.py:46:89
+   |
+44 |     # Note: MemoryClient._router is private, testing internals for verification
+45 |     store = client._router.store
+46 |     # Default prefix in MemoryRouter is "memory-hub" (via defaults or explicitly if we updated it)
+   |                                                                                         ^^^^^^^^^^
+47 |     # StoreFactory default prefix is "memory-hub"
+48 |     assert store.bucket_name == "memory-hub-us-central1-dev"
+   |
+
+E501 Line too long (106 > 88)
+  --> tests\test_telemetry.py:23:89
+   |
+22 |     def test_client_write_span(self):
+23 |         client = MemoryClient("test-agent", "test-session", region="us-central1", region_restricted=False)
+   |                                                                                         ^^^^^^^^^^^^^^^^^^
+24 |         # Mock internal router to avoid side effects
+25 |         client._router = MagicMock()
+   |
+
+E501 Line too long (90 > 88)
+  --> tests\test_telemetry.py:30:89
+   |
+29 |         spans = self.exporter.get_finished_spans()
+30 |         # We might get other spans if other tests ran? No, new instance per test ideally, 
+   |                                                                                         ^^
+31 |         # but global tracer provider might persist?
+32 |         # TracerProvider is global if set via trace.set_tracer_provider
+   |
+
+E501 Line too long (89 > 88)
+  --> tests\test_telemetry.py:44:89
+   |
+42 |         # Mock interactions
+43 |         store._get_bucket = MagicMock()
+44 |         store._get_bucket.return_value.blob.return_value.upload_from_string = MagicMock()
+   |                                                                                         ^
+45 |         
+46 |         store.write("sess", "key", "val")
+   |
+
+E501 Line too long (96 > 88)
+  --> verify_pypi.py:41:90
+   |
+39 |     print("\n[Optional] Testing GCS Connection...")
+40 |     if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+41 |         print("ℹ️  Skipping actual GCS calls because GOOGLE_APPLICATION_CREDENTIALS is not set.")
+   |                                                                                         ^^^^^^^^
+42 |         print("    (This is expected if you haven't set up auth for this test environment)")
+43 |     else:
+   |
+
+E501 Line too long (92 > 88)
+  --> verify_pypi.py:42:89
+   |
+40 |     if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
+41 |         print("ℹ️  Skipping actual GCS calls because GOOGLE_APPLICATION_CREDENTIALS is not set.")
+42 |         print("    (This is expected if you haven't set up auth for this test environment)")
+   |                                                                                         ^^^^
+43 |     else:
+44 |         try:
+   |
+
+Found 18 errors.
+No fixes available (2 hidden fixes can be enabled with the `--unsafe-fixes` option).
