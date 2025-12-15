@@ -1,5 +1,11 @@
 # Agent Memory Hub
 
+[![PyPI](https://img.shields.io/pypi/v/agent-memory-hub.svg)](https://pypi.org/project/agent-memory-hub/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/agent-memory-hub.svg)](https://pypi.org/project/agent-memory-hub/)
+[![CI](https://github.com/sgmoorthy/agent-memory-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/sgmoorthy/agent-memory-hub/actions/workflows/ci.yml)
+[![Docs](https://github.com/sgmoorthy/agent-memory-hub/actions/workflows/docs.yml/badge.svg)](https://sgmoorthy.github.io/agent-memory-hub/)
+[![PyPI Status](https://img.shields.io/pypi/status/agent-memory-hub.svg)](https://pypi.org/project/agent-memory-hub/)
+
 **Enterprise-grade agent memory management solution with region governance.**
 
 `agent-memory-hub` provides a standardized, secure, and compliant way for AI agents to store and recall memories. It enforces region residency requirements (data sovereignty) and provides a clean abstraction over storage backends, defaulting to Google Cloud.
