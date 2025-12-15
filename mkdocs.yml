@@ -1,0 +1,42 @@
+site_name: Agent Memory Hub
+site_description: Enterprise-grade agent memory management solution with region governance.
+theme:
+  name: material
+  features:
+    - navigation.sections
+    - navigation.indexes
+    - content.code.copy
+  palette:
+    - media: "(prefers-color-scheme: light)"
+      scheme: default
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-night
+        name: Switch to dark mode
+    - media: "(prefers-color-scheme: dark)"
+      scheme: slate
+      primary: indigo
+      accent: indigo
+      toggle:
+        icon: material/weather-sunny
+        name: Switch to light mode
+
+plugins:
+  - search
+  - mkdocstrings:
+      handlers:
+        python:
+          paths: ["D:/projects/agentmemoryhub"]
+          options:
+            show_source: true
+            show_root_heading: true
+
+nav:
+  - Home: index.md
+  - Architecture: architecture.md
+  - API Reference:
+      - Memory Client: reference/client.md
+      - Memory Router: reference/routing.md
+      - Region Guard: reference/control_plane.md
+  - Contributing: contributing.md
