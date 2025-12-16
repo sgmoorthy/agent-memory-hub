@@ -62,7 +62,7 @@ class AlloyDBSessionStore(SessionStore):
             def getconn():
                 conn = self._connector.connect(
                     config.instance_connection_name,
-                    "psycopg2",
+                    "pg8000",
                     user=config.user,
                     password=config.password,
                     db=config.database,
@@ -70,7 +70,7 @@ class AlloyDBSessionStore(SessionStore):
                 return conn
 
             self.engine = create_engine(
-                "postgresql+psycopg2://",
+                "postgresql+pg8000://",
                 creator=getconn,
                 pool_size=config.pool_size,
                 max_overflow=config.max_overflow,
