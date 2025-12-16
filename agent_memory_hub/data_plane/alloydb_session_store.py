@@ -37,27 +37,47 @@ class AlloyDBSessionStore(SessionStore):
         self.ttl_seconds = ttl_seconds
         self._tracer = get_tracer()
 
-        # Construct Connection URI
+        # Construct Connection URI or Engine
         if config.db_url:
-            database_uri = config.db_url
+            self.engine = create_engine(
+                config.db_url,
+                pool_size=config.pool_size,
+                max_overflow=config.max_overflow,
+                pool_pre_ping=True
+            )
         else:
-            # Cloud SQL Connector / standard postgres URI
-            # Note: For production with Connector, standard practice is to use
-            # the connector as a context manager to get an engine, or providing
-            # a creator function. Here we assume the URI method (e.g. cloud_sql_proxy).
-            database_uri = (
-                f"postgresql+psycopg2://{config.user}:{config.password}@"
-                f"/{config.database}?host=/cloudsql/{config.instance_connection_name}"
+            # Use Google Cloud AlloyDB Connector
+            # This handles auth and connection establishment automatically (no manual proxy needed)
+            try:
+                from google.cloud.alloydb.connector import Connector
+            except ImportError:
+                raise ImportError(
+                    "google-cloud-alloydb-connector is required when db_url is not provided. "
+                    "Install with: pip install 'agent-memory-hub[alloydb]'"
+                )
+
+            # Keep reference to connector to prevent GC closing the loop (if applicable)
+            self._connector = Connector()
+
+            def getconn():
+                conn = self._connector.connect(
+                    config.instance_connection_name,
+                    "psycopg2",
+                    user=config.user,
+                    password=config.password,
+                    db=config.database,
+                )
+                return conn
+
+            self.engine = create_engine(
+                "postgresql+psycopg2://",
+                creator=getconn,
+                pool_size=config.pool_size,
+                max_overflow=config.max_overflow,
+                pool_pre_ping=True
             )
         
-        self.engine = create_engine(
-            database_uri,
-            pool_size=config.pool_size,
-            max_overflow=config.max_overflow,
-            pool_pre_ping=True
-        )
-        
-        # Ensure schema exists using raw SQL for simplicity and speed
+        # Ensure schema exists using raw SQL
         self._init_schema()
 
     def _init_schema(self):
