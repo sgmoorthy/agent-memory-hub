@@ -1,19 +1,13 @@
 """
-AlloyDB (PostgreSQL) session store implementation using ADK's DatabaseSessionService.
+AlloyDB (PostgreSQL) session store implementation using SQLAlchemy.
 """
 from typing import Any, Optional
+import json
+from datetime import datetime
 
-try:
-    from google.adk.sessions import DatabaseSessionService, Session
-    ADK_AVAILABLE = True
-except ImportError:
-    ADK_AVAILABLE = False
-    class DatabaseSessionService:
-        def __init__(self, *args, **kwargs): pass
-    class Session:
-        def __init__(self, id=None, *args, **kwargs):
-            self.id = id
-            self.state = {}
+from sqlalchemy import create_engine, text, Table, Column, String, MetaData
+from sqlalchemy.dialects.postgresql import JSONB
+from sqlalchemy.exc import SQLAlchemyError
 
 from agent_memory_hub.config.alloydb_config import AlloyDBConfig
 from agent_memory_hub.data_plane.adk_session_store import SessionStore
@@ -23,8 +17,8 @@ from agent_memory_hub.utils.ttl_manager import get_current_timestamp, is_expired
 
 class AlloyDBSessionStore(SessionStore):
     """
-    AlloyDB (PostgreSQL) session store using ADK's DatabaseSessionService.
-    Leverages ADK's built-in session management for better ecosystem integration.
+    AlloyDB (PostgreSQL) session store using generic SQLAlchemy.
+    Stores sessions in a 'sessions' table: (session_id TEXT PK, data JSONB).
     """
 
     def __init__(
@@ -33,166 +27,175 @@ class AlloyDBSessionStore(SessionStore):
         ttl_seconds: Optional[int] = None,
     ):
         """
-        Initialize AlloyDB session store using ADK's DatabaseSessionService.
+        Initialize AlloyDB session store.
 
         Args:
             config: AlloyDB connection configuration
             ttl_seconds: Default TTL for entries (None = no expiry)
-        
-        Raises:
-            ImportError: If google-adk is not installed
         """
-        if not ADK_AVAILABLE:
-            raise ImportError(
-                "google-adk is required for AlloyDB backend. "
-                "Install with: pip install google-adk"
-            )
-        
         self.config = config
         self.ttl_seconds = ttl_seconds
         self._tracer = get_tracer()
 
-        # Create ADK DatabaseSessionService with PostgreSQL connection
+        # Construct Connection URI
         if config.db_url:
             database_uri = config.db_url
         else:
-            # Create ADK DatabaseSessionService with PostgreSQL connection via Cloud SQL Connector
+            # Cloud SQL Connector / standard postgres URI
+            # Note: For production with Connector, standard practice is to use
+            # the connector as a context manager to get an engine, or providing
+            # a creator function. Here we assume the URI method (e.g. cloud_sql_proxy).
             database_uri = (
                 f"postgresql+psycopg2://{config.user}:{config.password}@"
                 f"/{config.database}?host=/cloudsql/{config.instance_connection_name}"
             )
         
-        self.session_service = DatabaseSessionService(
-            db_url=database_uri,
+        self.engine = create_engine(
+            database_uri,
             pool_size=config.pool_size,
             max_overflow=config.max_overflow,
+            pool_pre_ping=True
         )
+        
+        # Ensure schema exists using raw SQL for simplicity and speed
+        self._init_schema()
+
+    def _init_schema(self):
+        """Create sessions table if not exists."""
+        create_table_sql = """
+        CREATE TABLE IF NOT EXISTS sessions (
+            session_id TEXT PRIMARY KEY,
+            data JSONB NOT NULL DEFAULT '{}'::jsonb
+        );
+        """
+        try:
+            with self.engine.begin() as conn:
+                conn.execute(text(create_table_sql))
+        except SQLAlchemyError as e:
+            # Fallback or log if this fails (e.g. read-only user)
+            pass
 
     def write(self, session_id: str, key: str, value: Any) -> None:
         """
-        Write a value using ADK's session service.
-
-        Args:
-            session_id: Session identifier
-            key: Memory key
-            value: Value to store
+        Write a value to the session state in DB.
+        UPSERT implementation:
+        1. Read existing json.
+        2. Merge new key/value.
+        3. Write back.
+        (Note: PostgreSQL allow updates to jsonb paths directly, which is more efficient)
         """
         with self._tracer.start_as_current_span("AlloyDBSessionStore.write") as span:
             span.set_attribute("session.id", session_id)
             span.set_attribute("memory.key", key)
             span.set_attribute("database", self.config.database)
 
-            # Get or create ADK session
-            try:
-                session = self.session_service.get_session(session_id)
-            except Exception:
-                # Session doesn't exist, create it
-                session = Session(
-                    id=session_id,
-                    app_name="agent-memory-hub",
-                    user_id="system",
-                )
-                self.session_service.create_session(session)
-
-            # Store value in session state with TTL metadata
             metadata = {
                 "value": value,
                 "created_at": get_current_timestamp().isoformat(),
                 "ttl_seconds": self.ttl_seconds,
             }
             
-            # Update session state
-            if not hasattr(session, 'state') or session.state is None:
-                session.state = {}
-            session.state[key] = metadata
+            # Using PostgreSQL JSONB_SET for atomic valid path update if row exists,
+            # Or INSERT behavior. 
+            # Simplified: INSERT ON CONFLICT DO UPDATE
             
-            self.session_service.update_session(session)
+            # Prepare metadata JSON string
+            meta_json = json.dumps(metadata)
+            
+            sql = text("""
+                INSERT INTO sessions (session_id, data)
+                VALUES (:sid, jsonb_build_object(:key, :meta::jsonb))
+                ON CONFLICT (session_id) 
+                DO UPDATE SET data = sessions.data || jsonb_build_object(:key, :meta::jsonb);
+            """)
+            
+            try:
+                with self.engine.begin() as conn:
+                    conn.execute(sql, {"sid": session_id, "key": key, "meta": meta_json})
+            except SQLAlchemyError:
+                raise
 
     def read(self, session_id: str, key: str) -> Optional[Any]:
         """
-        Read a value using ADK's session service.
-
-        Args:
-            session_id: Session identifier
-            key: Memory key
-
-        Returns:
-            Stored value or None if not found/expired
+        Read a value from DB.
         """
         with self._tracer.start_as_current_span("AlloyDBSessionStore.read") as span:
             span.set_attribute("session.id", session_id)
             span.set_attribute("memory.key", key)
-            span.set_attribute("database", self.config.database)
-
-            try:
-                session = self.session_service.get_session(session_id)
-            except Exception:
-                return None
-
-            if not hasattr(session, 'state') or session.state is None:
-                return None
-
-            if key not in session.state:
-                return None
-
-            metadata = session.state[key]
             
-            # Check for TTL expiry
-            if isinstance(metadata, dict) and "created_at" in metadata:
-                from datetime import datetime
-                created_at = datetime.fromisoformat(metadata["created_at"])
-                ttl = metadata.get("ttl_seconds")
-                
-                if ttl is not None and is_expired(created_at, ttl):
-                    # Delete expired entry
-                    del session.state[key]
-                    self.session_service.update_session(session)
+            # Query specific key path
+            sql = text("""
+                SELECT data->:key FROM sessions WHERE session_id = :sid
+            """)
+            
+            try:
+                with self.engine.connect() as conn:
+                    result = conn.execute(sql, {"sid": session_id, "key": key}).scalar()
+                    
+                if result is None:
                     return None
                 
-                return metadata.get("value")
-            
-            # Backward compatibility for non-metadata values
-            return metadata
+                # SQLAlchemy/Psycopg2 might return dict for JSONB or str
+                metadata = result if isinstance(result, dict) else json.loads(result)
+                
+                # Check TTL
+                if isinstance(metadata, dict) and "created_at" in metadata:
+                    created_at = datetime.fromisoformat(metadata["created_at"])
+                    ttl = metadata.get("ttl_seconds")
+                    if ttl is not None and is_expired(created_at, ttl):
+                        # Lazy delete? Or just return None.
+                        # For read performance, we just return None. 
+                        # Cleanup job handles real deletion.
+                        return None
+                    return metadata.get("value")
+                
+                return metadata
+                
+            except SQLAlchemyError:
+                return None
 
     def cleanup_expired(self, session_id: Optional[str] = None) -> int:
         """
-        Manually cleanup expired entries using ADK's session service.
-
-        Args:
-            session_id: Optional session ID to limit cleanup scope
-
-        Returns:
-            Number of entries deleted
+        Cleanup expired entries via Logic.
+        Since we store data in JSONB, we have to iterate or use complex SQL.
+        Hard deletion inside JSONB used here.
         """
-        from datetime import datetime
+        count = 0
         
-        deleted_count = 0
+        # NOTE: Cleaning up inside JSONB efficiently requires logic.
+        # This simple implementation fetches the session, cleans it, and updates it.
+        # Ideally, use a relational schema for high-throughput expiration.
         
         if session_id:
-            # Cleanup specific session
+            # Clean single session
+            select_sql = text("SELECT data FROM sessions WHERE session_id = :sid FOR UPDATE")
+            update_sql = text("UPDATE sessions SET data = :data WHERE session_id = :sid")
+            
             try:
-                session = self.session_service.get_session(session_id)
-                if hasattr(session, 'state') and session.state:
-                    keys_to_delete = []
-                    for key, metadata in session.state.items():
-                        if isinstance(metadata, dict) and "created_at" in metadata:
-                            created_at = datetime.fromisoformat(metadata["created_at"])
-                            ttl = metadata.get("ttl_seconds")
+                with self.engine.begin() as conn:
+                    data = conn.execute(select_sql, {"sid": session_id}).scalar()
+                    if not data:
+                        return 0
+                    
+                    if isinstance(data, str):
+                        data = json.loads(data)
+                        
+                    keys_to_del = []
+                    for k, v in data.items():
+                        if isinstance(v, dict) and "created_at" in v:
+                            # Check expiry
+                            created_at = datetime.fromisoformat(v["created_at"])
+                            ttl = v.get("ttl_seconds")
                             if ttl and is_expired(created_at, ttl):
-                                keys_to_delete.append(key)
+                                keys_to_del.append(k)
                     
-                    for key in keys_to_delete:
-                        del session.state[key]
-                        deleted_count += 1
-                    
-                    if keys_to_delete:
-                        self.session_service.update_session(session)
-            except Exception:  # noqa: S110  # nosec
+                    if keys_to_del:
+                        for k in keys_to_del:
+                            del data[k]
+                        conn.execute(update_sql, {"sid": session_id, "data": json.dumps(data)})
+                        count = len(keys_to_del)
+            except SQLAlchemyError:
                 pass
-        else:
-            # Cleanup all sessions (expensive operation)
-            # Note: ADK doesn't provide list_all_sessions, so this is limited
-            # In production, consider using a scheduled job with direct DB access
-            pass
-        
-        return deleted_count
+                
+        return count
+
