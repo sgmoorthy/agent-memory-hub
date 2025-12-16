@@ -1,7 +1,12 @@
 import os
+import sys
 
-import agent_memory_hub
-from agent_memory_hub import MemoryClient
+try:
+    import agent_memory_hub
+    from agent_memory_hub import MemoryClient
+except ImportError:
+    print("❌ Failed to import agent_memory_hub")
+    sys.exit(1)
 
 print(
     f"✅ Successfully imported agent-memory-hub version: "
@@ -25,6 +30,30 @@ else:
     )
     print("    This might be a local editable install, NOT the PyPI version.")
 
+print("\n--- Checking Extras imports ---")
+
+# Check AlloyDB
+try:
+    from agent_memory_hub.config.alloydb_config import AlloyDBConfig
+    print("✅ AlloyDB module importable.")
+except ImportError:
+    print("ℹ️  AlloyDB modules not importable (extra not installed?)")
+
+# Check Redis
+try:
+    from agent_memory_hub.config.redis_config import RedisConfig
+    print("✅ Redis module importable.")
+except ImportError:
+    print("ℹ️  Redis modules not importable (extra not installed?)")
+
+# Check Semantic Models
+try:
+    from agent_memory_hub.models import BaseMemory, SemanticMemory
+    print("✅ Semantic Memory Models importable.")
+except ImportError:
+    print("❌ Semantic Memory Models FAILED to import.")
+
+
 print("\n--- Attempting Client Initialization ---")
 try:
     # Initialize client
@@ -36,26 +65,14 @@ try:
     )
     print("✅ MemoryClient initialized successfully.")
     
-    print("\n[Optional] Testing GCS Connection...")
-    if not os.environ.get("GOOGLE_APPLICATION_CREDENTIALS"):
-        print(
-            "ℹ️  Skipping actual GCS calls because "
-            "GOOGLE_APPLICATION_CREDENTIALS is not set."
-        )
-        print(
-            "    (This is expected if you haven't set up auth "
-            "for this test environment)"
-        )
-    else:
-        try:
-            client.read("test_key")  # Assuming read is safer/easier
-            print("✅ GCS Connection Successful!")
-        except Exception as e:
-            print(f"❌ GCS Connection Failed: {e}")
-            print(
-                "    (This logic implies the code works, but cloud "
-                "auth/permissions failed.)"
-            )
+    # Try importing newly added stores directly to verify structural integrity
+    try:
+        from agent_memory_hub.data_plane.store_factory import StoreFactory
+        print("✅ StoreFactory importable")
+    except ImportError as e:
+        print(f"❌ Failed to import StoreFactory: {e}")
 
 except Exception as e:
     print(f"❌ Client Initialization Failed: {e}")
+
+print("\nVerification Complete.")

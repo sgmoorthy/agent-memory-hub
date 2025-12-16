@@ -6,11 +6,13 @@ from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from agent_memory_hub.config.alloydb_config import AlloyDBConfig
+    from agent_memory_hub.config.redis_config import RedisConfig
 
 from agent_memory_hub.config.regions import DEFAULT_REGION
 from agent_memory_hub.control_plane.region_guard import RegionGuard
 from agent_memory_hub.routing.memory_router import MemoryRouter
 from agent_memory_hub.utils.telemetry import get_tracer
+from agent_memory_hub.models.base import BaseMemory
 
 
 class MemoryClient:
@@ -27,6 +29,7 @@ class MemoryClient:
         backend: str = "adk",
         ttl_seconds: Optional[int] = None,
         alloydb_config: Optional["AlloyDBConfig"] = None,
+        redis_config: Optional["RedisConfig"] = None,
         environment: str = "prod",
     ):
         """
@@ -40,6 +43,7 @@ class MemoryClient:
             backend: Storage backend ("adk" for GCS, "alloydb" for AlloyDB).
             ttl_seconds: Time-to-live in seconds (None = no expiry).
             alloydb_config: AlloyDB configuration (required if backend="alloydb").
+            redis_config: Redis configuration (optional if backend="redis").
             environment: Environment context (e.g., "prod", "dev") for resource naming.
         """
         self.agent_id = agent_id
@@ -58,6 +62,7 @@ class MemoryClient:
                 backend=backend,
                 ttl_seconds=ttl_seconds,
                 alloydb_config=alloydb_config,
+                redis_config=redis_config,
                 environment=environment,
             )
         else:
@@ -70,6 +75,7 @@ class MemoryClient:
                 backend=backend,
                 ttl_seconds=ttl_seconds,
                 alloydb_config=alloydb_config,
+                redis_config=redis_config,
                 environment=environment,
             )
 
@@ -90,6 +96,30 @@ class MemoryClient:
             # Composite key could include agent_id to namespace it
             composite_key = f"{self.agent_id}/{key}"
             self._router.write(self.session_id, composite_key, value)
+
+    def write_model(self, memory_model: "BaseMemory") -> None:
+        """
+        Write a semantic memory model to the store.
+        
+        Args:
+            memory_model: Pydantic model instance (EpisodicMemory, SemanticMemory, etc.)
+        """
+        # Ensure agent_id matches client if not set (though model has default)
+        if hasattr(memory_model, "agent_id") and not memory_model.agent_id:
+             memory_model.agent_id = self.agent_id
+             
+        # Use model ID or content hash as key? 
+        # For now, we use a predictable key scheme: type/id
+        key = f"{memory_model.__class__.__name__.lower()}/{memory_model.id}"
+        
+        # Serialize to dict
+        value = memory_model.to_dict()
+        
+        with self._tracer.start_as_current_span("MemoryClient.write_model") as span:
+            span.set_attribute("memory.type", memory_model.__class__.__name__)
+            span.set_attribute("memory.id", memory_model.id)
+            
+            self.write(value, key=key)
 
     def recall(self, key: str = "default") -> Optional[Any]:
         """

@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING, Any, Optional
 
 if TYPE_CHECKING:
     from agent_memory_hub.config.alloydb_config import AlloyDBConfig
+    from agent_memory_hub.config.redis_config import RedisConfig
 
 from agent_memory_hub.control_plane.region_guard import RegionGuard
 from agent_memory_hub.data_plane.adk_session_store import SessionStore
@@ -22,6 +23,7 @@ class MemoryRouter:
         backend: str = "adk",
         ttl_seconds: Optional[int] = None,
         alloydb_config: Optional["AlloyDBConfig"] = None,
+        redis_config: Optional["RedisConfig"] = None,
         environment: str = "prod",
     ):
         self.region_guard = region_guard
@@ -37,6 +39,7 @@ class MemoryRouter:
             environment=environment,
             ttl_seconds=ttl_seconds,
             alloydb_config=alloydb_config,
+            redis_config=redis_config,
         )
 
     def write(self, session_id: str, key: str, value: Any) -> None:

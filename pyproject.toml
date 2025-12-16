@@ -52,6 +52,12 @@ alloydb = [
     "sqlalchemy>=2.0.0",
     "psycopg2-binary>=2.9.0",
 ]
+redis = [
+    "redis>=5.0.0",
+]
+firestore = [
+    "google-cloud-firestore>=2.0.0",
+]
 
 [tool.setuptools.packages.find]
 include = ["agent_memory_hub*"]

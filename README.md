@@ -14,13 +14,22 @@
 
 - **Session-based Memory**: Isolate memory by agent and session ID.
 - **Region Governance**: Enforce data residency (e.g., `us-central1`, `europe-west1`).
-- **Backend Agnostic**: Adapter pattern supports multiple backends (Default: Google ADK/GCS).
+- **Backend Agnostic**: Adapter pattern supports multiple backends:
+  - **Google Cloud Storage (Default)**: Cost-effective object storage.
+  - **AlloyDB (PostgreSQL)**: High-performance relational data.
+  - **Redis (Memorystore)**: Ultra-low latency ephemeral memory.
+  - **Firestore**: Serverless, low-latency document storage.
 - **Enterprise Security**: No hardcoded secrets, strictly typed, and compliance-ready.
 
 ## Installation
 
 ```bash
 pip install agent-memory-hub
+
+# For specific backends
+pip install "agent-memory-hub[alloydb]"
+pip install "agent-memory-hub[redis]"
+pip install "agent-memory-hub[firestore]"
 ```
 
 ## Quick Start
@@ -56,6 +65,17 @@ By default, this package uses Google Cloud Storage as the backing store.
 2. **Permissions**: The service account requires `storage.objects.create` and `storage.objects.get` permissions on the target bucket.
 3. **Buckets**: Buckets should be named following the convention `memory-hub-{region}-{environment}` (e.g., `memory-hub-asia-south1-prod`).
 
+## Benchmarking
+
+A built-in benchmarking script is included to evaluate latency and performance across different backends.
+
+```bash
+# Example: Benchmark Redis
+python benchmark_db.py --backend redis --redis-host localhost
+```
+
+See `docs/benchmarking.md` for full details.
+
 ## Development
 
 ### Pre-commit Testing
@@ -86,3 +106,9 @@ We have a detailed feature roadmap including Observability, AWS support, and Vec
 Check out [ROADMAP.md](ROADMAP.md) to see what's planned and how you can contribute!
 
 See [SECURITY.md](SECURITY.md) for vulnerability disclosure.
+
+## Documentation
+
+- [Benchmarking Guide](docs/benchmarking.md)
+- [Security & Access Flow](docs/security_access.md)
+- [Semantic Memory Models](docs/semantic_models.md)
