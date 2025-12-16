@@ -170,6 +170,7 @@ if __name__ == "__main__":
     parser.add_argument("--db-pass", help="AlloyDB Password")
     parser.add_argument("--db-name", help="AlloyDB Database Name")
     parser.add_argument("--db-conn", help="AlloyDB Instance Connection Name")
+    parser.add_argument("--db-url", help="AlloyDB Connection String (overrides other args)")
 
     # Redis specific args
     parser.add_argument("--redis-host", help="Redis Host")
@@ -185,18 +186,23 @@ if __name__ == "__main__":
 
     alloy_config = None
     if args.backend == "alloydb":
-        if not all([args.db_user, args.db_pass, args.db_name, args.db_conn]):
+        # Check if we have either a full URL OR the breakdown
+        has_url = bool(args.db_url)
+        has_details = all([args.db_user, args.db_pass, args.db_name, args.db_conn])
+        
+        if not (has_url or has_details):
             print(
-                "Error: AlloyDB backend requires --db-user, --db-pass, "
-                "--db-name, and --db-conn"
+                "Error: AlloyDB backend requires either --db-url OR "
+                "(--db-user, --db-pass, --db-name, and --db-conn)"
             )
             exit(1)
         
         alloy_config = AlloyDBConfig(
-            user=args.db_user,
-            password=args.db_pass,
-            database=args.db_name,
-            instance_connection_name=args.db_conn
+            user=args.db_user or "",
+            password=args.db_pass or "",
+            database=args.db_name or "",
+            instance_connection_name=args.db_conn or "",
+            db_url=args.db_url
         )
 
     redis_config = None

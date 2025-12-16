@@ -53,10 +53,14 @@ class AlloyDBSessionStore(SessionStore):
         self._tracer = get_tracer()
 
         # Create ADK DatabaseSessionService with PostgreSQL connection
-        database_uri = (
-            f"postgresql+psycopg2://{config.user}:{config.password}@"
-            f"/{config.database}?host=/cloudsql/{config.instance_connection_name}"
-        )
+        if config.db_url:
+            database_uri = config.db_url
+        else:
+            # Create ADK DatabaseSessionService with PostgreSQL connection via Cloud SQL Connector
+            database_uri = (
+                f"postgresql+psycopg2://{config.user}:{config.password}@"
+                f"/{config.database}?host=/cloudsql/{config.instance_connection_name}"
+            )
         
         self.session_service = DatabaseSessionService(
             database_uri=database_uri,

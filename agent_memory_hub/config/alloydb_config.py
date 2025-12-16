@@ -2,6 +2,7 @@
 Configuration for AlloyDB connections.
 """
 from dataclasses import dataclass
+from typing import Optional
 
 
 @dataclass
@@ -26,13 +27,19 @@ class AlloyDBConfig:
     pool_size: int = 5
     max_overflow: int = 10
     
+    db_url: Optional[str] = None
+    
     def get_connection_string(self) -> str:
         """
         Get SQLAlchemy connection string for AlloyDB.
         
         Returns:
             Connection string in format: postgresql+psycopg2://user:pass@/db
+            OR the explicit db_url if provided.
         """
+        if self.db_url:
+            return self.db_url
+            
         return (
             f"postgresql+psycopg2://{self.user}:{self.password}@/"
             f"{self.database}"
@@ -49,13 +56,15 @@ class AlloyDBConfig:
         - ALLOYDB_USER: Database user
         - ALLOYDB_PASSWORD: Database password
         - ALLOYDB_REGION: GCP region
+        - ALLOYDB_DB_URL: (Optional) Full connection string override
         """
         import os
         
         return cls(
-            instance_connection_name=os.environ["ALLOYDB_INSTANCE"],
-            database=os.environ["ALLOYDB_DATABASE"],
-            user=os.environ["ALLOYDB_USER"],
-            password=os.environ["ALLOYDB_PASSWORD"],
+            instance_connection_name=os.environ.get("ALLOYDB_INSTANCE", ""),
+            database=os.environ.get("ALLOYDB_DATABASE", ""),
+            user=os.environ.get("ALLOYDB_USER", ""),
+            password=os.environ.get("ALLOYDB_PASSWORD", ""),
             region=os.environ.get("ALLOYDB_REGION", "us-central1"),
+            db_url=os.environ.get("ALLOYDB_DB_URL"),
         )

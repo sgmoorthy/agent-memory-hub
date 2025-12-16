@@ -5,6 +5,13 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.2] - 2025-12-16
+
+### Added
+
+- **AlloyDB Configurations**: Added `db_url` support to `AlloyDBConfig` and `AlloyDBSessionStore` to allow explicit connection strings (e.g., for TCP/Auth Proxy connections), overriding the default Cloud SQL Unix socket construction.
+- **Benchmark Tool**: Added `--db-url` argument to `benchmark_db.py`.
+
 ## [0.3.1] - 2025-12-16
 
 ### Fixed
