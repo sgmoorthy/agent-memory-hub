@@ -46,6 +46,10 @@ class MemoryClient:
             redis_config: Redis configuration (optional if backend="redis").
             environment: Environment context (e.g., "prod", "dev") for resource naming.
         """
+        if not agent_id:
+            raise ValueError("agent_id cannot be empty")
+        if not session_id:
+            raise ValueError("session_id cannot be empty")
         self.agent_id = agent_id
         self.session_id = session_id
         self.region = region

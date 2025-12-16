@@ -19,47 +19,37 @@ class TestMemoryRouter:
     @pytest.fixture
     def router(self, mock_region_guard):
         """Create a MemoryRouter with mocked dependencies."""
-        return MemoryRouter(region_guard=mock_region_guard)
+        with patch(
+        "agent_memory_hub.routing.memory_router.StoreFactory"
+    ) as mock_factory:
+            mock_store = MagicMock()
+            mock_factory.get_store.return_value = mock_store
+            
+            router = MemoryRouter(region_guard=mock_region_guard)
+            
+            # Attach mock for verification
+            router._mock_store = mock_store
+            router._mock_factory = mock_factory
+            return router
     
-    def test_router_initialization(self, mock_region_guard):
+    def test_router_initialization(self, mock_region_guard, router):
         """Test that router initializes with region guard."""
-        router = MemoryRouter(region_guard=mock_region_guard)
         assert router.region_guard == mock_region_guard
+        # Check that store was initialized (eagerly)
+        router._mock_factory.get_store.assert_called_once()
+        assert router.store == router._mock_store
     
-    @patch("agent_memory_hub.routing.memory_router.StoreFactory")
-    def test_write_delegates_to_store(self, mock_factory, router):
+    def test_write_delegates_to_store(self, router):
         """Test that write operations are delegated to the session store."""
-        mock_store = MagicMock()
-        mock_factory.create_store.return_value = mock_store
-        router._store = mock_store
-        
         router.write("session1", "key1", "value1")
         
-        mock_store.write.assert_called_once_with("session1", "key1", "value1")
+        router._mock_store.write.assert_called_once_with("session1", "key1", "value1")
     
-    @patch("agent_memory_hub.routing.memory_router.StoreFactory")
-    def test_read_delegates_to_store(self, mock_factory, router):
+    def test_read_delegates_to_store(self, router):
         """Test that read operations are delegated to the session store."""
-        mock_store = MagicMock()
-        mock_store.read.return_value = "stored_value"
-        mock_factory.create_store.return_value = mock_store
-        router._store = mock_store
+        router._mock_store.read.return_value = "stored_value"
         
         result = router.read("session1", "key1")
         
-        mock_store.read.assert_called_once_with("session1", "key1")
+        router._mock_store.read.assert_called_once_with("session1", "key1")
         assert result == "stored_value"
-    
-    @patch("agent_memory_hub.routing.memory_router.StoreFactory")
-    def test_store_lazy_initialization(self, mock_factory, router):
-        """Test that store is lazily initialized on first use."""
-        mock_store = MagicMock()
-        mock_factory.create_store.return_value = mock_store
-        
-        # Store should not be created yet
-        assert not hasattr(router, '_store') or router._store is None
-        
-        # First operation triggers initialization
-        router.write("session1", "key1", "value1")
-        
-        mock_factory.create_store.assert_called_once()

@@ -4,16 +4,18 @@ from unittest.mock import MagicMock, patch
 
 try:
     from agent_memory_hub.data_plane.firestore_session_store import (
+        FIRESTORE_AVAILABLE,
         FirestoreSessionStore,
     )
     from agent_memory_hub.utils.ttl_manager import get_current_timestamp
 except ImportError:
+    FIRESTORE_AVAILABLE = False
     FirestoreSessionStore = None
 
 class TestFirestoreSessionStore(unittest.TestCase):
     
     def setUp(self):
-        if FirestoreSessionStore is None:
+        if not FIRESTORE_AVAILABLE:
             self.skipTest("firestore not installed")
             
         self.mock_firestore_client = MagicMock()

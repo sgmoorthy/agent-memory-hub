@@ -6,18 +6,20 @@ from unittest.mock import MagicMock, patch
 # Import assuming agent_memory_hub is in path
 try:
     from agent_memory_hub.data_plane.redis_session_store import (
+        REDIS_AVAILABLE,
         RedisConfig,
         RedisSessionStore,
     )
     from agent_memory_hub.utils.ttl_manager import get_current_timestamp
 except ImportError:
     # Handle optional import failure in tests if deps not present
+    REDIS_AVAILABLE = False
     RedisSessionStore = None
 
 class TestRedisSessionStore(unittest.TestCase):
     
     def setUp(self):
-        if RedisSessionStore is None:
+        if not REDIS_AVAILABLE:
             self.skipTest("redis not installed")
             
         self.mock_redis_client = MagicMock()

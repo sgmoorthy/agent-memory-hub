@@ -35,6 +35,7 @@ def store():
         instance_connection_name="proj:region:inst",
         pool_size=1,
         max_overflow=0,
+        region="us-central1",
     )
     
     # We must patch multiple things because the module might not have ADK installed
@@ -42,9 +43,11 @@ def store():
         "agent_memory_hub.data_plane.alloydb_session_store.ADK_AVAILABLE", True
     ), \
          patch("agent_memory_hub.data_plane.alloydb_session_store.DatabaseSessionService", 
-               MockDatabaseSessionService), \
+               MockDatabaseSessionService, create=True), \
          patch(
-             "agent_memory_hub.data_plane.alloydb_session_store.Session", MockSession
+             "agent_memory_hub.data_plane.alloydb_session_store.Session", 
+             MockSession, 
+             create=True
          ):
          
         s = AlloyDBSessionStore(config=cfg, ttl_seconds=1)

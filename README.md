@@ -1,27 +1,48 @@
-# Agent Memory Hub
+# Agent Memory Hub: Region-Governed Memory for AI Agents
 
 [![PyPI](https://img.shields.io/pypi/v/agent-memory-hub.svg)](https://pypi.org/project/agent-memory-hub/)
 [![Python Versions](https://img.shields.io/pypi/pyversions/agent-memory-hub.svg)](https://pypi.org/project/agent-memory-hub/)
 [![CI](https://github.com/sgmoorthy/agent-memory-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/sgmoorthy/agent-memory-hub/actions/workflows/ci.yml)
 [![Docs](https://github.com/sgmoorthy/agent-memory-hub/actions/workflows/docs.yml/badge.svg)](https://sgmoorthy.github.io/agent-memory-hub/)
-[![PyPI Status](https://img.shields.io/pypi/status/agent-memory-hub.svg)](https://pypi.org/project/agent-memory-hub/)
+[![License](https://img.shields.io/pypi/l/agent-memory-hub.svg)](LICENSE)
 
-**Enterprise-grade agent memory management solution with region governance.**
+**Agent Memory Hub** is the enterprise-standard solution for managing **long-term memory for AI agents** with strict **region governance**. Designed for developers building scalable agentic workflows, it provides a unified interface to store, recall, and manage agent state across diverse storage backends while ensuring compliance with data residency laws (GDPR, CCPA).
 
-`agent-memory-hub` provides a standardized, secure, and compliant way for AI agents to store and recall memories. It enforces region residency requirements (data sovereignty) and provides a clean abstraction over storage backends, defaulting to Google Cloud.
+Whether you are building a simple chatbot or a complex multi-agent system, `agent-memory-hub` abstracts the complexity of state management, letting you focus on agent logic.
 
-## Features
+---
 
-- **Session-based Memory**: Isolate memory by agent and session ID.
-- **Region Governance**: Enforce data residency (e.g., `us-central1`, `europe-west1`).
-- **Backend Agnostic**: Adapter pattern supports multiple backends:
-  - **Google Cloud Storage (Default)**: Cost-effective object storage.
-  - **AlloyDB (PostgreSQL)**: High-performance relational data.
-  - **Redis (Memorystore)**: Ultra-low latency ephemeral memory.
-  - **Firestore**: Serverless, low-latency document storage.
-- **Enterprise Security**: No hardcoded secrets, strictly typed, and compliance-ready.
+## 🚀 What is Agent Memory Hub?
 
-## Installation
+Agent Memory Hub is a Python SDK that acts as a middleware between your AI agents (built with LangChain, AutoGen, OpenAI, etc.) and your storage infrastructure. It creates a structured "brain" for your agents where every interaction, fact, or retrieved context is indexed by **Agent ID** and **Session ID**.
+
+Crucially, it introduces **Region Governance** as a first-class citizen. You can strictly enforce that an agent's memory never leaves a specific geographic region (e.g., `europe-west1`), which is critical for enterprise applications handling sensitive user data.
+
+## 💡 Why Use It?
+
+- **Data Sovereignty & Compliance**: Native support for **region governance**. If an agent is configured for `europe-west1`, the SDK physically prevents writes to `us-central1` storage buckets.
+- **Backend Agnostic**: Switch from **Google Cloud Storage** to **AlloyDB**, **Redis**, or **Firestore** without changing your agent code.
+- **Session Isolation**: Automatically segregates memories by session, making it perfect for conversational agents and RAG pipelines.
+- **Production Ready**: Typed, tested, and security-scanned. No hardcoded secrets.
+
+## ⚙️ How It Works
+
+The library uses an **Adapter Pattern** to connect to various storage backends. When you initialize a `MemoryClient`, you specify the _Agent_, _Session_, and _Region_.
+
+```mermaid
+graph LR
+    A[AI Agent] -->|Write/Recall| B(MemoryClient)
+    B -->|Region Check| C{Region Allowed?}
+    C -->|Yes| D[Storage Adapter]
+    C -->|No| E[Error]
+    D -->|Persist| F[(GCS / AlloyDB / Redis)]
+```
+
+1. **Initialize**: Create a client with specific region constraints.
+2. **Interact**: Use `.write()` to save state and `.recall()` to fetch context.
+3. **Govern**: The SDK handles the routing and compliance checks transparently.
+
+## 🛠️ Installation
 
 ```bash
 pip install agent-memory-hub
@@ -29,86 +50,58 @@ pip install agent-memory-hub
 # For specific backends
 pip install "agent-memory-hub[alloydb]"
 pip install "agent-memory-hub[redis]"
-pip install "agent-memory-hub[firestore]"
 ```
 
-## Quick Start
+## ⚡ Quick Start & Examples
+
+We provide ready-to-use examples for common scenarios:
+
+### 1. OpenAI Agent Integration
+
+Inject long-term memory into your OpenAI API calls to personalize responses.
+
+- [View Example](examples/openai_agents_integration.py)
 
 ```python
 from agent_memory_hub import MemoryClient
-
-# Initialize the client with strict region requirements
-memory = MemoryClient(
-    agent_id="travel_agent",
-    session_id="sess_001",
-    region="asia-south1",
-    region_restricted=True
-)
-
-# Store a memory (will fail if backend is not in asia-south1)
-memory.write("User prefers vegetarian food", "episodic")
-
-# Recall memory
-print(memory.recall("episodic"))
+# ... initialization ...
+memory.write("User prefers concise Python code.")
+context = memory.recall()
+# Inject 'context' into your system prompt
 ```
 
-## Region Governance
+### 2. Multi-Region Architecture
 
-This SDK is designed for global deployments where data sovereignty is critical.
-When `region_restricted=True` is set, the SDK performs a handshake with the control plane to verify that the underlying storage is physically located in the requested region before writing any data.
+Manage distinct compliance requirements for global user bases.
 
-## GCP Prerequisites
+- [View Example](examples/multi_region_memory_architecture.py)
 
-By default, this package uses Google Cloud Storage as the backing store.
-
-1. **Authentication**: Ensure `GOOGLE_APPLICATION_CREDENTIALS` is set or you are authenticated via `gcloud auth application-default login`.
-2. **Permissions**: The service account requires `storage.objects.create` and `storage.objects.get` permissions on the target bucket.
-3. **Buckets**: Buckets should be named following the convention `memory-hub-{region}-{environment}` (e.g., `memory-hub-asia-south1-prod`).
-
-## Benchmarking
-
-A built-in benchmarking script is included to evaluate latency and performance across different backends.
-
-```bash
-# Example: Benchmark Redis
-python benchmark_db.py --backend redis --redis-host localhost
+```python
+# This client will ONLY write to EU-based storage
+eu_memory = MemoryClient(agent_id="eu_bot", region="europe-west1", region_restricted=True)
 ```
 
-See `docs/benchmarking.md` for full details.
+### 3. RAG Agent with Memory
 
-## Development
+Enhance Retrieval-Augmented Generation (RAG) by caching retrieved context and user interactions.
 
-### Pre-commit Testing
+- [View Example](examples/rag_agent_with_region_memory.py)
 
-Before pushing code, run the pre-commit validation script to catch issues early:
+---
 
-```bash
-python scripts/pre_commit_test.py
-```
+## 📚 Documentation
 
-This runs:
-
-- Linting (Ruff)
-- Security audits (pip-audit, Bandit)
-- Full test suite
-- Coverage check (minimum 70%)
-- Package build validation
-
-## Security & Compliance
-
-- **No Secrets**: This library does not handle secrets directly. Use IAM roles.
-- **Dependency Pinning**: All dependencies are pinned to secure versions.
-- **Audit**: Compatible with `pip-audit` and `bandit`.
-
-## Roadmap & Contributing
-
-We have a detailed feature roadmap including Observability, AWS support, and Vector Search.
-Check out [ROADMAP.md](ROADMAP.md) to see what's planned and how you can contribute!
-
-See [SECURITY.md](SECURITY.md) for vulnerability disclosure.
-
-## Documentation
+Full documentation is available at [https://sgmoorthy.github.io/agent-memory-hub/](https://sgmoorthy.github.io/agent-memory-hub/).
 
 - [Benchmarking Guide](docs/benchmarking.md)
 - [Security & Access Flow](docs/security_access.md)
 - [Semantic Memory Models](docs/semantic_models.md)
+- [API Reference](site/reference/index.html)
+
+## 🤝 Contributing
+
+We welcome contributions! Please check [CONTRIBUTING.md](CONTRIBUTING.md) and our [ROADMAP.md](ROADMAP.md).
+
+## 🛡️ Security
+
+This project adheres to strict security practices. See [SECURITY.md](SECURITY.md) for details.

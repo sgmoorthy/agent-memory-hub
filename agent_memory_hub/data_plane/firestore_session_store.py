@@ -94,7 +94,11 @@ class FirestoreSessionStore(SessionStore):
             entry = data[key]
             
             # Check TTL
-            if isinstance(entry, dict) and "created_at" in entry and "ttl_seconds" in entry:
+            if (
+                isinstance(entry, dict) 
+                and "created_at" in entry 
+                and "ttl_seconds" in entry
+            ):
                 created_at = datetime.fromisoformat(entry["created_at"])
                 ttl = entry["ttl_seconds"]
                 
@@ -136,7 +140,11 @@ class FirestoreSessionStore(SessionStore):
             data = snapshot.to_dict()
             updates = {}
             for key, entry in data.items():
-                if isinstance(entry, dict) and "created_at" in entry and "ttl_seconds" in entry:
+                if (
+                    isinstance(entry, dict) 
+                    and "created_at" in entry 
+                    and "ttl_seconds" in entry
+                ):
                     created_at = datetime.fromisoformat(entry["created_at"])
                     ttl = entry["ttl_seconds"]
                     if ttl and is_expired(created_at, ttl):

@@ -33,7 +33,8 @@ class StoreFactory:
             environment: Environment for GCS bucket names (e.g., "prod", "dev")
             ttl_seconds: Time-to-live in seconds (None = no expiry)
             alloydb_config: AlloyDB configuration (required for alloydb backend)
-            redis_config: Redis configuration (optional for redis backend, else from env)
+            redis_config: Redis configuration (optional for redis backend, 
+                          else from env)
         """
         if backend == "adk":
             # Convention: memory-hub-{region}-prod or similar. 

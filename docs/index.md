@@ -1,38 +1,96 @@
-# Agent Memory Hub
+# Agent Memory Hub: Region-Governed Memory for AI Agents
 
-**Enterprise-grade agent memory management solution with region governance.**
+[![PyPI](https://img.shields.io/pypi/v/agent-memory-hub.svg)](https://pypi.org/project/agent-memory-hub/)
+[![Python Versions](https://img.shields.io/pypi/pyversions/agent-memory-hub.svg)](https://pypi.org/project/agent-memory-hub/)
+[![CI](https://github.com/sgmoorthy/agent-memory-hub/actions/workflows/ci.yml/badge.svg)](https://github.com/sgmoorthy/agent-memory-hub/actions/workflows/ci.yml)
+[![Docs](https://github.com/sgmoorthy/agent-memory-hub/actions/workflows/docs.yml/badge.svg)](https://sgmoorthy.github.io/agent-memory-hub/)
+[![License](https://img.shields.io/pypi/l/agent-memory-hub.svg)](LICENSE)
 
-`agent-memory-hub` provides a standardized, secure, and compliant way for AI agents to store and recall memories. It enforces region residency requirements (data sovereignty) and provides a clean abstraction over storage backends, defaulting to Google Cloud.
+**Agent Memory Hub** is the enterprise-standard solution for managing **long-term memory for AI agents** with strict **region governance**. Designed for developers building scalable agentic workflows, it provides a unified interface to store, recall, and manage agent state across diverse storage backends while ensuring compliance with data residency laws (GDPR, CCPA).
 
-## Features
+Whether you are building a simple chatbot or a complex multi-agent system, `agent-memory-hub` abstracts the complexity of state management, letting you focus on agent logic.
 
-- **Session-based Memory**: Isolate memory by agent and session ID.
-- **Region Governance**: Enforce data residency (e.g., `us-central1`, `europe-west1`).
-- **Backend Agnostic**: Adapter pattern supports multiple backends (Default: Google ADK/GCS).
-- **Enterprise Security**: No hardcoded secrets, strictly typed, and compliance-ready.
+---
 
-## Installation
+## 🚀 What is Agent Memory Hub?
+
+Agent Memory Hub is a Python SDK that acts as a middleware between your AI agents (built with LangChain, AutoGen, OpenAI, etc.) and your storage infrastructure. It creates a structured "brain" for your agents where every interaction, fact, or retrieved context is indexed by **Agent ID** and **Session ID**.
+
+Crucially, it introduces **Region Governance** as a first-class citizen. You can strictly enforce that an agent's memory never leaves a specific geographic region (e.g., `europe-west1`), which is critical for enterprise applications handling sensitive user data.
+
+## 💡 Why Use It?
+
+- **Data Sovereignty & Compliance**: Native support for **region governance**. If an agent is configured for `europe-west1`, the SDK physically prevents writes to `us-central1` storage buckets.
+- **Backend Agnostic**: Switch from **Google Cloud Storage** to **AlloyDB**, **Redis**, or **Firestore** without changing your agent code.
+- **Session Isolation**: Automatically segregates memories by session, making it perfect for conversational agents and RAG pipelines.
+- **Production Ready**: Typed, tested, and security-scanned. No hardcoded secrets.
+
+## ⚙️ How It Works
+
+The library uses an **Adapter Pattern** to connect to various storage backends. When you initialize a `MemoryClient`, you specify the _Agent_, _Session_, and _Region_.
+
+```mermaid
+graph LR
+    A[AI Agent] -->|Write/Recall| B(MemoryClient)
+    B -->|Region Check| C{Region Allowed?}
+    C -->|Yes| D[Storage Adapter]
+    C -->|No| E[Error]
+    D -->|Persist| F[(GCS / AlloyDB / Redis)]
+```
+
+1. **Initialize**: Create a client with specific region constraints.
+2. **Interact**: Use `.write()` to save state and `.recall()` to fetch context.
+3. **Govern**: The SDK handles the routing and compliance checks transparently.
+
+## 🛠️ Installation
 
 ```bash
 pip install agent-memory-hub
+
+# For specific backends
+pip install "agent-memory-hub[alloydb]"
+pip install "agent-memory-hub[redis]"
 ```
 
-## Quick Start
+## ⚡ Quick Start & Examples
+
+We provide ready-to-use examples for common scenarios:
+
+### 1. OpenAI Agent Integration
+
+Inject long-term memory into your OpenAI API calls to personalize responses.
+
+- [View Example](examples/openai_agents_integration.py)
 
 ```python
 from agent_memory_hub import MemoryClient
-
-# Initialize the client with strict region requirements
-memory = MemoryClient(
-    agent_id="travel_agent",
-    session_id="sess_001",
-    region="asia-south1",
-    region_restricted=True
-)
-
-# Store a memory (will fail if backend is not in asia-south1)
-memory.write("User prefers vegetarian food", "episodic")
-
-# Recall memory
-print(memory.recall("episodic"))
+# ... initialization ...
+memory.write("User prefers concise Python code.")
+context = memory.recall()
+# Inject 'context' into your system prompt
 ```
+
+### 2. Multi-Region Architecture
+
+Manage distinct compliance requirements for global user bases.
+
+- [View Example](examples/multi_region_memory_architecture.py)
+
+```python
+# This client will ONLY write to EU-based storage
+eu_memory = MemoryClient(agent_id="eu_bot", region="europe-west1", region_restricted=True)
+```
+
+### 3. RAG Agent with Memory
+
+Enhance Retrieval-Augmented Generation (RAG) by caching retrieved context and user interactions.
+
+- [View Example](examples/rag_agent_with_region_memory.py)
+
+---
+
+## 📚 Documentation
+
+- [Benchmarking Guide](benchmarking.md)
+- [Security & Access Flow](security_access.md)
+- [Semantic Memory Models](semantic_models.md)

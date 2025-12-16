@@ -6,6 +6,11 @@ import pytest
 
 from agent_memory_hub.data_plane.adk_session_store import AdkSessionStore
 
+try:
+    import google.cloud.storage  # noqa: F401
+except ImportError:
+    pass
+
 
 class TestAdkSessionStore:
     @pytest.fixture
@@ -25,7 +30,7 @@ class TestAdkSessionStore:
         path = store._get_blob_path("session123", "memory_key")
         assert path == "sessions/session123/memory_key.json"
     
-    @patch("agent_memory_hub.data_plane.adk_session_store.storage")
+    @patch("google.cloud.storage")
     def test_write_operation(self, mock_storage, store):
         """Test write operation uploads to GCS."""
         mock_client = MagicMock()
@@ -47,7 +52,7 @@ class TestAdkSessionStore:
         uploaded_data = json.loads(call_args[0][0])
         assert uploaded_data["value"] == {"data": "test"}
     
-    @patch("agent_memory_hub.data_plane.adk_session_store.storage")
+    @patch("google.cloud.storage")
     def test_read_existing_blob(self, mock_storage, store):
         """Test reading an existing blob from GCS."""
         mock_client = MagicMock()
@@ -67,7 +72,7 @@ class TestAdkSessionStore:
         mock_blob.exists.assert_called_once()
         mock_blob.download_as_text.assert_called_once()
     
-    @patch("agent_memory_hub.data_plane.adk_session_store.storage")
+    @patch("google.cloud.storage")
     def test_read_nonexistent_blob(self, mock_storage, store):
         """Test reading a non-existent blob returns None."""
         mock_client = MagicMock()
@@ -86,7 +91,7 @@ class TestAdkSessionStore:
         mock_blob.exists.assert_called_once()
         mock_blob.download_as_text.assert_not_called()
     
-    @patch("agent_memory_hub.data_plane.adk_session_store.storage")
+    @patch("google.cloud.storage")
     def test_lazy_client_initialization(self, mock_storage, store):
         """Test that GCS client is lazily initialized."""
         mock_client = MagicMock()

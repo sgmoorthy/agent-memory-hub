@@ -8,6 +8,12 @@ try:
     ADK_AVAILABLE = True
 except ImportError:
     ADK_AVAILABLE = False
+    class DatabaseSessionService:
+        def __init__(self, *args, **kwargs): pass
+    class Session:
+        def __init__(self, id=None, *args, **kwargs):
+            self.id = id
+            self.state = {}
 
 from agent_memory_hub.config.alloydb_config import AlloyDBConfig
 from agent_memory_hub.data_plane.adk_session_store import SessionStore
@@ -177,7 +183,7 @@ class AlloyDBSessionStore(SessionStore):
                     
                     if keys_to_delete:
                         self.session_service.update_session(session)
-            except Exception: # noqa: S110
+            except Exception:  # noqa: S110  # nosec
                 pass
         else:
             # Cleanup all sessions (expensive operation)

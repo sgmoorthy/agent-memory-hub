@@ -41,7 +41,13 @@ plugins:
 
 nav:
   - Home: index.md
+  - Guides:
+      - OpenAI Integration: guides/openai_integration.md
+      - Multi-Region Setup: guides/multi_region.md
+      - Building RAG Agents: guides/rag_memory.md
   - Architecture: architecture.md
+  - Benchmarking: benchmarking.md
+  - Security: security_access.md
   - API Reference:
       - Memory Client: reference/client.md
       - Memory Router: reference/routing.md
