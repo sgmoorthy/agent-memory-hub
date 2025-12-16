@@ -63,7 +63,7 @@ class AlloyDBSessionStore(SessionStore):
             )
         
         self.session_service = DatabaseSessionService(
-            database_uri=database_uri,
+            db_url=database_uri,
             pool_size=config.pool_size,
             max_overflow=config.max_overflow,
         )
