@@ -10,6 +10,7 @@ sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), '..')
 from agent_memory_hub import MemoryClient
 from agent_memory_hub.config.redis_config import RedisConfig
 
+
 def main():
     # Configure Redis (using local default or env)
     redis_config = RedisConfig(
@@ -19,18 +20,14 @@ def main():
 
     print("--- Initializing Client with Redis Backend ---")
     try:
-        # Note: You need to implement 'redis_config' parameter in MemoryClient 
-        # (Step pending in task list, this example anticipates it)
         client = MemoryClient(
             agent_id="redis-agent",
             session_id="redis-session-1",
             region="us-central1", # Still required for RegionGuard
             backend="redis",
-            ttl_seconds=300
+            ttl_seconds=300,
+            redis_config=redis_config
         )
-        # HACK: Manually injecting since we haven't updated MemoryClient init yet
-        # In real code, we will update MemoryClient to accept redis_config
-        # This is placeholder until we update MemoryClient constructor
         
         print("Writing to Redis...")
         client.write("Hello Redis!", key="greeting")

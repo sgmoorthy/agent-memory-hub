@@ -1,11 +1,11 @@
 
 import unittest
 from unittest.mock import MagicMock, patch
-import json
-from datetime import datetime
 
 try:
-    from agent_memory_hub.data_plane.firestore_session_store import FirestoreSessionStore
+    from agent_memory_hub.data_plane.firestore_session_store import (
+        FirestoreSessionStore,
+    )
     from agent_memory_hub.utils.ttl_manager import get_current_timestamp
 except ImportError:
     FirestoreSessionStore = None
@@ -24,7 +24,10 @@ class TestFirestoreSessionStore(unittest.TestCase):
         self.mock_firestore_client.collection.return_value = self.mock_collection
         self.mock_collection.document.return_value = self.mock_doc
         
-        with patch("google.cloud.firestore.Client", return_value=self.mock_firestore_client):
+        with patch(
+            "google.cloud.firestore.Client", 
+            return_value=self.mock_firestore_client
+        ):
             self.store = FirestoreSessionStore(collection="test-mem", ttl_seconds=3600)
 
     def test_write(self):

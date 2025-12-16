@@ -1,9 +1,9 @@
 from agent_memory_hub.models.base import BaseMemory, MemoryScope
 from agent_memory_hub.models.types import (
-    EpisodicMemory,
-    SemanticMemory,
     EntityMemory,
+    EpisodicMemory,
     ProceduralMemory,
+    SemanticMemory,
 )
 
 __all__ = [

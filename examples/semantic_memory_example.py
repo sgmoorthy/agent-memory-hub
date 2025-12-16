@@ -1,34 +1,36 @@
 """
 Example script demonstrating Semantic Memory Models.
 """
-import sys
 import os
+import sys
 
 # Add project root to path
 sys.path.append(os.getcwd())
 
 from agent_memory_hub import MemoryClient
-from agent_memory_hub.models import (
-    EpisodicMemory, 
-    SemanticMemory, 
-    EntityMemory,
-    MemoryScope
-)
 from agent_memory_hub.config.redis_config import RedisConfig
+from agent_memory_hub.models import (
+    EntityMemory,
+    EpisodicMemory,
+    MemoryScope,
+    SemanticMemory,
+)
+
 
 def main():
     print("--- Semantic Memory Example ---")
     
-    # 1. Initialize Client (using Redis fallback to local if available, or just mocking logic via ADK/Memory default)
+    # 1. Initialize Client (using Redis fallback to local if available)
     # Note: For this example to actually persist, you need a backend. 
-    # We will assume Redis is running locally for demonstration, or default to ADK (which needs auth).
+    # We will assume Redis is running locally for demonstration, 
+    # or default to ADK (which needs auth).
     
     # Let's try to use Redis if available, else standard
     client = MemoryClient(
         agent_id="researcher_gpt",
         session_id="session_101",
         region="us-central1",
-        region_restricted=False, # Relax for local test
+        region_restricted=False,  # Relax for local test
         backend="redis",
         redis_config=RedisConfig(host="localhost", port=6379),
         environment="dev"

@@ -1,12 +1,14 @@
 
+import json
 import unittest
 from unittest.mock import MagicMock, patch
-import json
-from datetime import datetime
 
 # Import assuming agent_memory_hub is in path
 try:
-    from agent_memory_hub.data_plane.redis_session_store import RedisSessionStore, RedisConfig
+    from agent_memory_hub.data_plane.redis_session_store import (
+        RedisConfig,
+        RedisSessionStore,
+    )
     from agent_memory_hub.utils.ttl_manager import get_current_timestamp
 except ImportError:
     # Handle optional import failure in tests if deps not present

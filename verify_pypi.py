@@ -1,9 +1,8 @@
-import os
 import sys
 
 try:
-    import agent_memory_hub
-    from agent_memory_hub import MemoryClient
+    import agent_memory_hub  # noqa: F401
+    from agent_memory_hub import MemoryClient  # noqa: F401
 except ImportError:
     print("❌ Failed to import agent_memory_hub")
     sys.exit(1)
@@ -34,21 +33,21 @@ print("\n--- Checking Extras imports ---")
 
 # Check AlloyDB
 try:
-    from agent_memory_hub.config.alloydb_config import AlloyDBConfig
+    from agent_memory_hub.config.alloydb_config import AlloyDBConfig  # noqa: F401
     print("✅ AlloyDB module importable.")
 except ImportError:
     print("ℹ️  AlloyDB modules not importable (extra not installed?)")
 
 # Check Redis
 try:
-    from agent_memory_hub.config.redis_config import RedisConfig
+    from agent_memory_hub.config.redis_config import RedisConfig  # noqa: F401
     print("✅ Redis module importable.")
 except ImportError:
     print("ℹ️  Redis modules not importable (extra not installed?)")
 
 # Check Semantic Models
 try:
-    from agent_memory_hub.models import BaseMemory, SemanticMemory
+    from agent_memory_hub.models import BaseMemory, SemanticMemory  # noqa: F401
     print("✅ Semantic Memory Models importable.")
 except ImportError:
     print("❌ Semantic Memory Models FAILED to import.")
@@ -67,7 +66,7 @@ try:
     
     # Try importing newly added stores directly to verify structural integrity
     try:
-        from agent_memory_hub.data_plane.store_factory import StoreFactory
+        from agent_memory_hub.data_plane.store_factory import StoreFactory  # noqa: F401
         print("✅ StoreFactory importable")
     except ImportError as e:
         print(f"❌ Failed to import StoreFactory: {e}")

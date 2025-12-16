@@ -1,11 +1,8 @@
 """
 Tests for pydantic semantic models.
 """
-from agent_memory_hub.models import (
-    EpisodicMemory, 
-    SemanticMemory, 
-    MemoryScope
-)
+from agent_memory_hub.models import EpisodicMemory, MemoryScope, SemanticMemory
+
 
 def test_episodic_memory_creation():
     mem = EpisodicMemory(

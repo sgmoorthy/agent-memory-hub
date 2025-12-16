@@ -4,7 +4,8 @@ Tests for MemoryClient semantic model support.
 from unittest.mock import MagicMock
 
 from agent_memory_hub import MemoryClient
-from agent_memory_hub.models import SemanticMemory, MemoryScope
+from agent_memory_hub.models import MemoryScope, SemanticMemory
+
 
 def test_client_write_model():
     # specialized client mock not needed if we mock the router

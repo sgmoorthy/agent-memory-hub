@@ -1,9 +1,8 @@
 """
 Firestore session store implementation.
 """
-from typing import Any, Optional
 from datetime import datetime
-import json
+from typing import Any, Optional
 
 try:
     from google.cloud import firestore

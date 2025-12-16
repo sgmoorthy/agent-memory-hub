@@ -10,9 +10,9 @@ if TYPE_CHECKING:
 
 from agent_memory_hub.config.regions import DEFAULT_REGION
 from agent_memory_hub.control_plane.region_guard import RegionGuard
+from agent_memory_hub.models.base import BaseMemory
 from agent_memory_hub.routing.memory_router import MemoryRouter
 from agent_memory_hub.utils.telemetry import get_tracer
-from agent_memory_hub.models.base import BaseMemory
 
 
 class MemoryClient:

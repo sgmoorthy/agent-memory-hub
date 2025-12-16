@@ -1,16 +1,17 @@
 
 import argparse
-import time
 import os
 import random
 import string
-import json
+import time
 from typing import Optional
+
 from agent_memory_hub import MemoryClient
 from agent_memory_hub.config.alloydb_config import AlloyDBConfig
 from agent_memory_hub.config.redis_config import RedisConfig
+
 try:
-    from agent_memory_hub.models import SemanticMemory, MemoryScope
+    from agent_memory_hub.models import MemoryScope, SemanticMemory
 except ImportError:
     pass
 
@@ -63,6 +64,7 @@ def run_benchmark(
 
     for size in sizes_kb:
         print(f"\nTesting Payload Size: {size} KB")
+        payload = generate_payload(size)
         if use_semantic:
              # Wrap payload in semantic memory
              mem_payload = SemanticMemory(
@@ -147,8 +149,15 @@ def run_benchmark(
     print("="*50 + "\n")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Benchmark Agent Memory Hub DB Backends")
-    parser.add_argument("--backend", choices=["adk", "alloydb", "redis", "firestore"], default="adk", help="Backend to test")
+    parser = argparse.ArgumentParser(
+        description="Benchmark Agent Memory Hub DB Backends"
+    )
+    parser.add_argument(
+        "--backend", 
+        choices=["adk", "alloydb", "redis", "firestore"], 
+        default="adk", 
+        help="Backend to test"
+    )
     parser.add_argument("--region", default="us-central1", help="GCP Region")
     parser.add_argument("--env", default="dev", help="Environment (e.g., dev, prod)")
     
@@ -162,14 +171,21 @@ if __name__ == "__main__":
     parser.add_argument("--redis-host", help="Redis Host")
     parser.add_argument("--redis-port", default="6379", help="Redis Port")
     
-    parser.add_argument("--use-semantic", action="store_true", help="Benchmark with Semantic Models")
+    parser.add_argument(
+        "--use-semantic", 
+        action="store_true", 
+        help="Benchmark with Semantic Models"
+    )
 
     args = parser.parse_args()
 
     alloy_config = None
     if args.backend == "alloydb":
         if not all([args.db_user, args.db_pass, args.db_name, args.db_conn]):
-            print("Error: AlloyDB backend requires --db-user, --db-pass, --db-name, and --db-conn")
+            print(
+                "Error: AlloyDB backend requires --db-user, --db-pass, "
+                "--db-name, and --db-conn"
+            )
             exit(1)
         
         alloy_config = AlloyDBConfig(

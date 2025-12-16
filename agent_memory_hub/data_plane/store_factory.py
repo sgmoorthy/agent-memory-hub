@@ -55,7 +55,9 @@ class StoreFactory:
 
         if backend == "redis":
             from agent_memory_hub.config.redis_config import RedisConfig
-            from agent_memory_hub.data_plane.redis_session_store import RedisSessionStore
+            from agent_memory_hub.data_plane.redis_session_store import (
+                RedisSessionStore,
+            )
 
             # Use provided config or fall back to env
             config = redis_config or RedisConfig.from_env()
