@@ -18,6 +18,18 @@ alloydb_config = AlloyDBConfig(
     max_overflow=10,
 )
 
+# Option 2: Using explicit Connection String (db_url)
+# Useful for TCP connections, Auth Proxy, or local testing
+alloydb_url_config = AlloyDBConfig(
+    db_url="postgresql+psycopg2://user:pass@localhost:5432/memory_db",
+    # Other fields are ignored if db_url is present, but good to keep for reference
+    instance_connection_name="", 
+    database="", 
+    user="", 
+    password="", 
+    region="us-central1"
+)
+
 # Create client with AlloyDB backend
 client = MemoryClient(
     agent_id="agent-123",
@@ -41,6 +53,7 @@ print(f"Retrieved from AlloyDB: {notes}")
 # - ALLOYDB_USER=memory_user
 # - ALLOYDB_PASSWORD=secure_password
 # - ALLOYDB_REGION=us-central1
+# - ALLOYDB_DB_URL=postgresql+psycopg2://user:pass@localhost:5432/memory_db (Optional override)
 
 config_from_env = AlloyDBConfig.from_env()
 
