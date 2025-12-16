@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "agent-memory-hub"
-version = "0.3.0"
+version = "0.3.1"
 description = "Enterprise-grade agent memory management solution with region governance."
 readme = "README.md"
 authors = [

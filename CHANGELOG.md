@@ -5,6 +5,14 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.3.1] - 2025-12-16
+
+### Fixed
+
+- **CI/Test Robustness**: Updated `test_firestore_store.py` and `test_redis_store.py` to correctly skip tests if optional dependencies (`redis`, `google-cloud-firestore`) are missing.
+- **Linting**: Resolved minor line-length and unused import issues in test suite.
+- **Client Validation**: Added non-empty checks for `agent_id` and `session_id` in `MemoryClient`.
+
 ## [0.3.0] - 2025-12-16
 
 ### Added
